@@ -15,10 +15,10 @@ The instructor needs Chapter 2 for the next class. Finish the teaching material 
 
 - [x] Establish project agent instructions, UI/UX criteria, and per-update commit policy.
 - [ ] Review and verify the existing local Next.js/Nextra baseline before committing it separately.
-- [ ] Locate original Chapter 2 handouts or establish instructor-authorized new draft content.
+- [x] Establish instructor-authorized new drafts aligned to the supplied syllabus (pages 3 and 6).
 - [ ] Inventory/import original Foundation handouts and images without rewriting them.
-- [ ] Prepare 2.1 Server Orchestration & Request/Response Lifecycle.
-- [ ] Prepare 2.2 REST Constraints & Architectural Concerns.
+- [x] Prepare 2.1 Server Orchestration & Request/Response Lifecycle (instructor-review draft).
+- [x] Prepare 2.2 REST Constraints & Architectural Concerns (instructor-review draft).
 - [ ] Verify explanations, runnable examples, activities, and knowledge checks against learning objectives and primary technical sources.
 - [ ] Add course/chapter navigation without removing existing subject material.
 - [ ] Verify reading, code blocks, images, links, mobile/keyboard usability, and production build.
@@ -35,6 +35,7 @@ Keep existing full Foundation handouts intact. The application may use PostgreSQ
 - ITE 303 source: https://github.com/AldenDerf/ITE303-Docs at main commit `14374975ad2f1560fce5855ba5bd3102a5d7e642`.
 - Confirmed original lessons: `docs/runnig-first-program/index.md` and `docs/http_requests/index.md`, plus two HTTP instructional images.
 - Chapter 2.1 and 2.2 were absent from that inspected tree; their originals remain unresolved.
+- The instructor subsequently authorized new drafts and provided the syllabus. Draft pack: `docs/ite303/chapter-2/README.md`. Sample projects compiled and 23 local HTTP cases passed; student exercise solutions, platform integration, and publication remain pending. See the pack's verification notes.
 - Existing public site: https://ite-303-docs.aldenderf.com (availability was not verified in the initial review).
 
 ## Later milestones
