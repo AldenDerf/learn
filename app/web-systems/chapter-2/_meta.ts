@@ -11,6 +11,7 @@ const meta = {
     title: 'Core Lessons'
   },
   'server-lifecycle': '2.1 Server & Request Lifecycle',
+  'first-express-server': '2.1.1 Your First Express Server',
   'rest-architecture': '2.2 REST & Architecture'
 };
 
