@@ -8,10 +8,12 @@
 
 ## Read in order
 
-1. [2.1 Server Orchestration & Request/Response Lifecycle](01-server-lifecycle.md)
-2. [2.2 REST Constraints & Architectural Concerns](02-rest-constraints.md)
-3. [Instructor guide and alignment](instructor-guide.md)
-4. [Verification notes](verification.md)
+1. [Prerequisite 1: Running Your First Node.js + TypeScript Program](00a-first-nodejs-typescript.md)
+2. [Prerequisite 2: Understanding HTTP Requests & Responses](00b-http-requests-responses.md)
+3. [2.1 Server Orchestration & Request/Response Lifecycle](01-server-lifecycle.md)
+4. [2.2 REST Constraints & Architectural Concerns](02-rest-constraints.md)
+5. [Instructor guide and alignment](instructor-guide.md)
+6. [Verification notes](verification.md)
 
 These are newly authored lessons, not recovered original handouts. The existing Foundation handouts remain unchanged. Examples use a separate Express laboratory project, not the Next.js learning platform.
 

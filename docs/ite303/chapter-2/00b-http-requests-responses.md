@@ -1,0 +1,376 @@
+# Prerequisite 2: Understanding HTTP Requests & Responses
+
+**ITE 303: Web Systems and Technologies 2**  
+**Chapter 2 Foundation: Scalable REST API Architecture with Express.js**  
+**Student Handout & Laboratory Preparation**
+
+---
+
+## Learning Objectives
+
+In [Prerequisite 1](./first-program), you ran TypeScript programs locally in your terminal. Now, we connect applications across the network.
+
+By the end of this lesson, you will be able to:
+
+1. **Describe the Client-Server mental model** and the message exchange cycle.
+2. **Break down the anatomy of an HTTP request** (method, path, query parameters, headers, body).
+3. **Break down the anatomy of an HTTP response** (status line, status code, headers, body).
+4. **Differentiate between path parameters and query parameters**.
+5. **Identify the core HTTP methods** (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`).
+6. **Interpret fundamental HTTP status codes** (`200`, `201`, `400`, `404`, `500`).
+7. **Trace a complete JSON request and response exchange** using standard tools like `curl.exe`.
+8. **Explain common beginner misconceptions** about web networking.
+
+---
+
+## 1. The Client-Server Mental Model
+
+Every interaction on the web is a conversation between two distinct software entities:
+
+1. **The Client:** The software initiating the request. This can be Google Chrome on a smartphone, a React web frontend, a mobile app, or a developer terminal tool like `curl.exe` or Postman.
+2. **The Server:** A backend program (such as an Express application) listening on a specific network port (e.g., `3000`) on a computer or cloud server.
+
+They communicate using **HTTP (Hypertext Transfer Protocol)**:
+
+```text
+┌────────────────────────────────┐                 ┌────────────────────────────────┐
+│             CLIENT             │                 │             SERVER             │
+│  (Browser, Postman, curl.exe)  │                 │    (Node.js + Express App)     │
+└───────────────┬────────────────┘                 └────────────────┬───────────────┘
+                │                                                   │
+                │        1. HTTP Request (Message sent)             │
+                │ ────────────────────────────────────────────────> │
+                │                                                   │
+                │                                                   │ ── Inspects path & method
+                │                                                   │ ── Runs route handler
+                │                                                   │ ── Prepares response data
+                │                                                   │
+                │        2. HTTP Response (Message returned)        │
+                │ <──────────────────────────────────────────────── │
+                │                                                   │
+```
+
+> [!IMPORTANT]
+> **HTTP is Request-Response Driven:**  
+> The server **never speaks until spoken to**. A client sends an **HTTP Request**, the server processes it, and the server sends back exactly one **HTTP Response**. Once the response is sent, that single exchange is complete.
+
+---
+
+## 2. The Anatomy of an HTTP Request
+
+An HTTP request is not magic; it is plain, structured text sent over a TCP network connection.
+
+Here is what an actual HTTP request looks like when sent over the wire:
+
+```http
+GET /students/101 HTTP/1.1
+Host: localhost:3000
+User-Agent: Mozilla/5.0
+Accept: application/json
+```
+
+Every HTTP request consists of four major sections:
+
+```text
+┌────────────────────────────────────────────────────────┐
+│ 1. Request Line: [METHOD] [PATH + QUERY] [HTTP VERSION] │
+├────────────────────────────────────────────────────────┤
+│ 2. Headers: Key-value metadata about the request       │
+├────────────────────────────────────────────────────────┤
+│ 3. Empty Line: Separates headers from the body         │
+├────────────────────────────────────────────────────────┤
+│ 4. Request Body: (Optional) Payload / Data sent        │
+└────────────────────────────────────────────────────────┘
+```
+
+Let us examine each element:
+
+### A. HTTP Methods (Verbs)
+The method tells the server what type of operation the client wishes to perform:
+
+| Method | Plain English meaning | Common classroom use | Does it send a body? |
+|---|---|---|---|
+| **`GET`** | *"Please give me this information."* | Fetching a list of students or a specific destination. | **No** (data goes in the URL) |
+| **`POST`** | *"Here is new information, please create it."* | Submitting a new enrollment, creating a booking. | **Yes** (JSON payload) |
+| **`PUT`** | *"Replace the entire record with this new data."* | Overwriting all fields of an existing student. | **Yes** (Full JSON payload) |
+| **`PATCH`** | *"Update only this specific field."* | Changing just a student's `yearLevel` or email. | **Yes** (Partial JSON payload) |
+| **`DELETE`** | *"Remove this record."* | Deleting a record by ID. | Usually **No** |
+
+### B. Path vs. Query Parameters
+Beginners often confuse these two ways of passing information in a URL:
+
+#### 1. Path Parameters (`/students/101`)
+- **What it is:** Part of the URL path itself.
+- **Purpose:** Identifies a **specific single resource**.
+- **Analogy:** Walking to room number `101`.
+- In Express, you will write routes like: `app.get("/students/:id", ...)`
+
+#### 2. Query Parameters (`/students?course=BSIT&year=3`)
+- **What it is:** Starts with a `?` after the path, with key-value pairs separated by `&`.
+- **Purpose:** **Filters, searches, paginates, or sorts** a collection.
+- **Analogy:** Asking for "all students in the hallway, but only those wearing blue shirts".
+- In Express, you will read: `req.query.course`
+
+| URL Example | Technique | Interpretation |
+|---|---|---|
+| `/destinations/5` | Path Parameter | Requesting the unique destination with ID 5. |
+| `/destinations?municipality=Basco` | Query Parameter | Requesting all destinations filtered by municipality. |
+| `/destinations?sort=name&limit=10` | Query Parameter | Requesting destinations sorted alphabetically, max 10. |
+
+### C. Request Headers
+Headers are key-value pairs providing metadata about the request.
+- `Host: localhost:3000` — Which server domain/port is being targeted.
+- `Accept: application/json` — Tells the server: *"I prefer to receive JSON back."*
+- `Content-Type: application/json` — Tells the server: *"The body I am sending you is JSON formatted."*
+- `User-Agent: ...` — Tells the server which browser, OS, or tool sent the request.
+
+### D. Request Body
+Used primarily with `POST`, `PUT`, and `PATCH`. It carries the actual data payload, most commonly formatted as a JSON string:
+
+```json
+{
+  "name": "Basco Lighthouse",
+  "municipality": "Basco"
+}
+```
+
+---
+
+## 3. The Anatomy of an HTTP Response
+
+When the server finishes processing, it returns an HTTP Response:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Content-Length: 78
+Date: Mon, 15 Sep 2026 14:00:00 GMT
+
+{
+  "id": 101,
+  "fullName": "Maria Santos",
+  "course": "BSIT",
+  "yearLevel": 3
+}
+```
+
+Every HTTP response consists of:
+
+```text
+┌────────────────────────────────────────────────────────┐
+│ 1. Status Line: [HTTP VERSION] [STATUS CODE] [REASON]   │
+├────────────────────────────────────────────────────────┤
+│ 2. Response Headers: Metadata about the server/payload │
+├────────────────────────────────────────────────────────┤
+│ 3. Empty Line: Separates headers from the body         │
+├────────────────────────────────────────────────────────┤
+│ 4. Response Body: The actual data returned to client   │
+└────────────────────────────────────────────────────────┘
+```
+
+### Essential HTTP Status Codes for Beginners
+
+Status codes are 3-digit numbers grouped by their first digit:
+
+| Code Range | Category | Meaning |
+|---|---|---|
+| **`2xx`** | Success | The request was received, understood, and accepted. |
+| **`3xx`** | Redirection | Further action is needed to complete the request. |
+| **`4xx`** | Client Error | The client made a mistake (invalid URL, bad data, unauthorized). |
+| **`5xx`** | Server Error | The server crashed or failed to fulfill a valid request. |
+
+Here are the 5 status codes you will use constantly in ITE 303:
+
+```text
+200 OK ─────────────── Standard success response for GET, PUT, PATCH
+201 Created ────────── Successfully created a new resource (POST)
+400 Bad Request ────── Client sent invalid syntax, missing fields, or wrong types
+404 Not Found ──────── The requested resource or URL path does not exist
+500 Internal Server ── Uncaught bug in backend code or database failure
+```
+
+---
+
+## 4. End-to-End Request Traces
+
+Let us look at two realistic exchanges to see how request and response connect.
+
+### Trace 1: Reading a Student (`GET /students/101`)
+
+**Step 1: The Client sends the request:**
+```http
+GET /students/101 HTTP/1.1
+Host: localhost:3000
+Accept: application/json
+```
+
+**Step 2: The Server executes internal logic:**
+1. Express matches `GET /students/:id`.
+2. Reads `req.params.id` as `"101"`.
+3. Validates that `"101"` is a valid numeric ID.
+4. Searches the database or array for record `101`.
+5. Finds the record.
+
+**Step 3: The Server returns the response:**
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "id": 101,
+  "fullName": "Maria Santos",
+  "course": "BSIT",
+  "isEnrolled": true
+}
+```
+
+---
+
+### Trace 2: Creating a New Student (`POST /students`)
+
+**Step 1: The Client sends the request with a JSON body:**
+```http
+POST /students HTTP/1.1
+Host: localhost:3000
+Content-Type: application/json
+Accept: application/json
+
+{
+  "fullName": "Juan Dela Cruz",
+  "course": "BSIT",
+  "yearLevel": 1
+}
+```
+
+**Step 2: The Server processes the request:**
+1. Express matches `POST /students`.
+2. Middleware parses the raw incoming JSON string into `req.body`.
+3. Validates required fields (`fullName`, `course`, `yearLevel`).
+4. Generates an auto-incremented `id` (e.g. `102`).
+5. Saves the record.
+
+**Step 3: The Server returns a `201 Created` response:**
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{
+  "id": 102,
+  "fullName": "Juan Dela Cruz",
+  "course": "BSIT",
+  "yearLevel": 1,
+  "createdAt": "2026-09-15T14:30:00.000Z"
+}
+```
+
+---
+
+## 5. Testing HTTP with `curl.exe` in PowerShell
+
+As a backend developer, you will frequently test endpoints from your command line without opening a browser.
+
+> [!WARNING]
+> **PowerShell Alert: Use `curl.exe`, not `curl`!**  
+> In Windows PowerShell 5.1, typing `curl` runs an alias for `Invoke-WebRequest`, which has different flags. Always explicitly type **`curl.exe`** in Windows to use the standard curl utility!
+
+Here is how you use `curl.exe` to inspect real HTTP headers and responses:
+
+### Example 1: Inspecting response headers (`-i` flag)
+```powershell
+curl.exe -i http://localhost:3000/destinations
+```
+- `-i`: Includes the HTTP status line and response headers in the output.
+
+### Example 2: Sending a POST request with JSON (`-X` and `-d` flags)
+```powershell
+curl.exe -i -X POST http://localhost:3000/destinations `
+  -H "Content-Type: application/json" `
+  -d '{"name":"Valugan Boulder Beach","municipality":"Basco"}'
+```
+- `-X POST`: Changes the HTTP verb from the default `GET` to `POST`.
+- `-H "Content-Type: application/json"`: Adds the request header telling the server to expect JSON.
+- `-d '...'`: Sends the request body string.
+
+---
+
+## 6. Common Beginner Misconceptions
+
+### Misconception 1: "A 404 status means the server is down or crashed."
+**Reality:** A `404 Not Found` response is a **successful HTTP communication**! It means the server is running perfectly, received your message, looked for `/destinations/999`, realized no such record exists, and politely reported back with `404 Not Found`. If the server actually crashed, your client would report: `Connection refused` or `ERR_CONNECTION_REFUSED`.
+
+### Misconception 2: "GET requests can safely carry passwords in a request body."
+**Reality:** According to the HTTP specification, `GET` requests are intended only to retrieve data. Most web servers and proxy caches ignore or discard bodies on `GET` requests. Passwords and login payloads belong in the body of a `POST` request over HTTPS.
+
+### Misconception 3: "HTTP can only transfer HTML web pages."
+**Reality:** HTTP is a general-purpose transport protocol. It transfers JSON, images (PNG, JPG), PDF documents, video streams, audio, and plain text. In REST APIs, the standard payload format is JSON.
+
+---
+
+## 7. Try It Yourself: Tracing an Error Case
+
+Read this scenario and write the expected HTTP response:
+
+### Scenario:
+A client sends:
+```http
+GET /destinations/invalid-id HTTP/1.1
+Host: localhost:3000
+```
+
+The server expects numeric IDs (e.g. `1`, `2`, `3`). When it receives `"invalid-id"`, it cannot look up the record because the client sent bad input.
+
+### Question:
+1. What status code should the server return? (`200`, `201`, `400`, `404`, or `500`?)
+2. Write the status line and a helpful JSON error response body.
+
+<details>
+<summary>👉 Click to view the correct answer</summary>
+
+**Correct status:** `400 Bad Request` (because the client sent a non-numeric string for an ID).
+
+**Response:**
+```http
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+
+{
+  "error": "Invalid request parameter",
+  "message": "Destination ID must be a positive integer."
+}
+```
+</details>
+
+---
+
+## 8. Check Your Understanding
+
+Answer these questions in your study notebook:
+
+1. **What are the four main components of an HTTP request message?**
+2. **When should you use a path parameter (`/items/42`) versus a query parameter (`/items?category=books`)?**
+3. **What status code should a server return after successfully creating a new user record via `POST`?**
+4. **If your backend code throws an unhandled `TypeError` inside a function, what status code does the client usually receive?**
+5. **Why should you type `curl.exe` instead of `curl` when working in Windows PowerShell?**
+
+---
+
+## 9. "Before You Continue" Checklist
+
+Verify your readiness before entering the core Chapter 2 lessons:
+
+- [ ] I can explain the client-server request-response lifecycle.
+- [ ] I know the difference between `GET`, `POST`, `PUT`, `PATCH`, and `DELETE`.
+- [ ] I understand how path parameters differ from query parameters.
+- [ ] I know what headers are used for (`Content-Type`, `Accept`).
+- [ ] I know the meanings of `200`, `201`, `400`, `404`, and `500`.
+- [ ] I understand how to read an HTTP request and response trace.
+
+---
+
+## Next Step: Connecting HTTP to Express.js
+
+You now understand **what** HTTP messages look like as they travel across the network.
+
+In the next lesson, we will see **how a real Node.js and Express backend receives, inspects, and processes those messages in code**:
+
+👉 Proceed to **[2.1 Server Orchestration & Request/Response Lifecycle](./server-lifecycle)**!

@@ -9,6 +9,8 @@
 - Started the emitted JavaScript servers and passed 23 local HTTP cases covering collection/detail reads, missing records, invalid IDs, filters, repeated/blank filters, unknown routes, JSON preview, malformed JSON, unsupported content type, and body size limit.
 - Checked JSON responses, empty collection results, case-insensitive matching, and preview normalization/no-save behavior.
 - The initial HTTP test ran before server readiness; increasing startup wait and rerunning completed successfully. This was a test harness timing issue.
+- Authored and verified two foundational prerequisite handouts: `00a-first-nodejs-typescript.md` (Node, TypeScript, pnpm, PowerShell workflow, process control) and `00b-http-requests-responses.md` (Client-server model, request/response anatomy, status codes, query vs path params, curl.exe testing).
+- Integrated prerequisite lessons into Nextra routes (`/web-systems/chapter-2/first-program`, `/web-systems/chapter-2/http-requests-responses`) and verified navigation hierarchy and sidebar order.
 
 ## Limits
 

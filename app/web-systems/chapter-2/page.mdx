@@ -1,29 +1,74 @@
 # Chapter 2: Scalable REST API Architecture with Express.js
 
-This chapter turns your basic HTTP and TypeScript knowledge into an organized Express API. You will first operate a typed server and trace one request from arrival to response. You will then design predictable REST pathways and separate route definitions from controller and business responsibilities.
+This chapter turns your foundational knowledge into an organized, production-grade Express backend API. You will learn how to run server-side TypeScript, master the mechanics of HTTP messages across the network, operate a typed web server, trace requests from arrival to response, design predictable RESTful resource pathways, and separate routing definitions from controller and business logic.
 
-## Syllabus outcomes
+---
 
-After completing the chapter, you should be able to:
+## 🎯 Syllabus Outcomes
 
-- orchestrate a Node.js web server and handle standard HTTP request/response parameters;
-- describe the HTTP request/response lifecycle and REST constraints;
-- design RESTful pathways using architectural separation of concerns; and
-- build an Express service using typed routers and controllers.
+After completing this chapter, you should be able to:
 
-## Lessons
+- **Orchestrate a Node.js web server** and handle standard HTTP request/response parameters.
+- **Describe the HTTP request/response lifecycle** and the six architectural REST constraints.
+- **Design RESTful pathways** following architectural separation of concerns.
+- **Build an Express service** using typed routers, modular controllers, and runtime validation.
 
-### [2.1 Server Orchestration & Request/Response Lifecycle](./server-lifecycle)
+---
 
-Learn the jobs of Node.js, TypeScript, and Express; trace middleware and route execution; validate external input; and build a typed dynamic route.
+## 🗺️ Recommended Learning Sequence
 
-### [2.2 REST Constraints & Architectural Concerns](./rest-architecture)
+To ensure a smooth transition from basic programming to backend architecture, work through the materials in this exact sequence:
 
-Learn the six REST constraints, design a clear HTTP resource contract, and organize an Express project into routes, controllers, services, and repositories.
+```text
+Chapter 2 Overview (You are here)
+       │
+       ▼
+[P.1] Running Your First Node.js + TypeScript Program
+       │
+       ▼
+[P.2] Understanding HTTP Requests & Responses
+       │
+       ▼
+[2.1] Server Orchestration & Request/Response Lifecycle
+       │
+       ▼
+[Lab 2.1] Basic Typed Express Server + Dynamic Routing
+       │
+       ▼
+[2.2] REST Constraints & Architectural Concerns
+       │
+       ▼
+[Lab 2.2] Routes → Controllers → Separation of Concerns
+```
 
-## Laboratory outputs
+---
 
-1. **Lab 2.1:** Initialize a typed Express server with dynamic route handlers and demonstrate successful, invalid, and missing-resource requests.
-2. **Lab 2.2:** Separate route paths from controller and business responsibilities while preserving the API contract.
+## 📚 Handouts & Modules
 
-Complete Lesson 2.1 before Lesson 2.2. Each handout includes setup instructions, guided examples, test cases, troubleshooting, an activity, and knowledge checks.
+### Foundation Prerequisites
+
+#### 1. [Prerequisite 1: Running Your First Node.js + TypeScript Program](./first-program)
+Establish the backend developer mental model: understand Node.js, TypeScript, and `pnpm`; initialize a workspace in PowerShell; install development tools; write typed functions; and run backend code using `package.json` scripts.
+
+#### 2. [Prerequisite 2: Understanding HTTP Requests & Responses](./http-requests-responses)
+Learn the anatomy of web communications before writing server code. Master the client-server request-response lifecycle, HTTP methods (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`), path parameters vs. query parameters, headers, JSON bodies, and status codes (`200`, `201`, `400`, `404`, `500`).
+
+---
+
+### Core Lessons
+
+#### 3. [Lesson 2.1: Server Orchestration & Request/Response Lifecycle](./server-lifecycle)
+Learn how Express receives and processes network requests. Orchestrate middleware pipelines, parse incoming parameters, validate input, and handle errors cleanly with full TypeScript typing.
+- **Laboratory Output 2.1:** Initialize a typed Express server with dynamic routing handlers and demonstrate successful, invalid, and missing-resource requests.
+
+#### 4. [Lesson 2.2: REST Constraints & Architectural Concerns](./rest-architecture)
+Learn Fielding's six REST architectural constraints, design consistent resource pathways, and refactor monolithic route files into an enterprise architecture (Routers → Controllers → Services → Repositories).
+- **Laboratory Output 2.2:** Separate route paths from controller and business logic while keeping the public client API contract strictly intact.
+
+---
+
+## 💡 Practical Advice for Students
+
+1. **Don't just read—type and run:** Backend development is muscle memory. Run every PowerShell command and verify the terminal output yourself.
+2. **Understand before refactoring:** Complete Prerequisite 1, Prerequisite 2, and Lesson 2.1 thoroughly before attempting the architectural split in Lesson 2.2.
+3. **Use isolated lab folders:** Keep your laboratory exercises in `C:\ite303-labs\` so your workspace remains organized throughout the semester.
