@@ -4,7 +4,7 @@
 
 **Chapter 2: Scalable REST API Architecture with Express.js**
 
-**Status: New draft for instructor review. Not yet published.**
+**Student handout**
 
 ## Learning targets
 

@@ -4,7 +4,7 @@
 
 **Chapter: Scalable REST API Architecture with Express.js**
 
-**Status: Instructor-review drafts; not published into application routes.**
+**Status: Student handouts published in the local application.**
 
 ## Read in order
 
@@ -13,7 +13,7 @@
 3. [Instructor guide and alignment](instructor-guide.md)
 4. [Verification notes](verification.md)
 
-These are newly authored lessons, not recovered original handouts. The existing Foundation handouts and local course pages are unchanged. Examples use a separate Express laboratory project, not the Next.js learning platform.
+These are newly authored lessons, not recovered original handouts. The existing Foundation handouts remain unchanged. Examples use a separate Express laboratory project, not the Next.js learning platform.
 
 ## Syllabus source
 

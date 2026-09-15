@@ -15,5 +15,5 @@
 - Only complete worked examples were executed, not student-authored activity solutions or discussion-only write endpoints.
 - Verification used isolated temporary npm-installed dependencies, Node 24.18.0, and the TypeScript CLI. The app's package/lock files were not changed. The pnpm setup sequence and tsx watch mode were not independently exercised.
 - The two labs are separate projects, with different ports, prefixes, fixture data, and validation conventions. Lesson 2.2 is not a byte-for-byte drop-in refactor of Lesson 2.1; students should preserve their own API contract when performing a true refactor.
-- These are plain Markdown drafts outside app routes. No platform browser rendering, accessibility conformance, app build, deployment, or publishing is claimed.
+- The Markdown handouts are rendered through student routes under `/web-systems/chapter-2`. Browser and build verification for that integration is recorded with the implementation commit; deployment remains separate.
 - The proposed timing and rubric require instructor judgment; the syllabus schedule discrepancy remains flagged.

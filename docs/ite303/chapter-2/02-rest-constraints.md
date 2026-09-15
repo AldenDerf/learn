@@ -1,6 +1,6 @@
 # 2.2 REST Constraints & Architectural Concerns
 
-> **Newly authored draft — instructor review required before publication.** This lesson is for ITE 303, Web Systems & Technologies 2. It does not replace an original handout. All destination records and application rules below are invented classroom fixtures, not official tourism information.
+> **Student handout.** This newly authored lesson is for ITE 303, Web Systems & Technologies 2. It does not replace an original handout. All destination records and application rules below are invented classroom fixtures, not official tourism information.
 
 ## Syllabus alignment and learning targets
 

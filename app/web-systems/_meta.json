@@ -6,6 +6,11 @@
   },
   "module-1-intro": "1. Introduction to Web",
   "module-2-client-server": "2. Client-Server Architecture",
+  "--- chapter-2": {
+    "type": "separator",
+    "title": "Chapter 2 · Scalable REST APIs"
+  },
+  "chapter-2": "Chapter 2: Express REST Architecture",
   "--- frontend": {
     "type": "separator",
     "title": "Frontend Technologies"
