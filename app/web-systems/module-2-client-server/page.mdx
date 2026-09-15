@@ -1,0 +1,43 @@
+# 🖥️ Module 2: Client-Server Architecture
+
+In this handout, we explore how modern web applications communicate between the client (front-end) and the server (back-end).
+
+---
+
+## The Client-Server Model
+
+Web systems operate on a **request-response cycle**:
+
+1. **Client**: A device (such as a laptop or mobile phone) running a web browser (Chrome, Firefox, Safari).
+2. **Request**: The client sends an HTTP/HTTPS request to the server asking for a resource (e.g., `GET /index.html`).
+3. **Server**: A remote computer that processes the request, retrieves data from a database if necessary, and returns a response.
+4. **Response**: The server sends back an HTTP response with a status code (e.g., `200 OK`, `404 Not Found`) and the requested content (HTML, CSS, JSON).
+
+---
+
+## HTTP Request Methods (W3Schools Style Reference)
+
+| Method | Description | Common Use Case |
+| :--- | :--- | :--- |
+| `GET` | Requests data from a specified resource | Viewing a webpage or loading student list |
+| `POST` | Submits data to be processed to a specified resource | Submitting a student registration form |
+| `PUT` | Updates an existing resource | Updating student contact information |
+| `DELETE` | Deletes a specified resource | Deleting a record |
+
+---
+
+## Example: HTTP Request Header
+
+```http
+GET /students HTTP/1.1
+Host: learn.example.edu
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)
+Accept: text/html,application/json
+```
+
+---
+
+> 💡 **Self-Check Question:**
+> What HTTP status code does the server return when a requested page or file does not exist?
+>
+> *(Answer: 404 Not Found)*

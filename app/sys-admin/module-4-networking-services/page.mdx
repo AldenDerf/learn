@@ -1,0 +1,40 @@
+# 🌐 Module 4: Networking & SSH Remote Access
+
+System Administrators rarely sit in front of physical server hardware. Almost all server administration is conducted remotely over encrypted network protocols.
+
+---
+
+## What is SSH (Secure Shell)?
+
+**SSH (Secure Shell)** is a cryptographic network protocol for operating network services securely over an unsecured network. It typically operates on port **22**.
+
+---
+
+## Connecting to a Remote Server
+
+```bash
+# Connect using username and server IP address
+ssh student@192.168.1.100
+
+# Connect on a non-standard port
+ssh -p 2222 student@server.domain.edu
+
+# Copy a file to the remote server via SCP (Secure Copy)
+scp ./notes.pdf student@192.168.1.100:/home/student/
+```
+
+---
+
+## Essential Network Diagnostics Tools
+
+| Command | Purpose | Example |
+| :--- | :--- | :--- |
+| `ping` | Tests network connectivity to a host | `ping google.com` |
+| `ip a` | Displays all network interfaces and IP addresses | `ip a` |
+| `ss -tuln` | Lists open listening network ports and services | `ss -tuln` |
+| `curl -I` | Fetches HTTP headers from a web server | `curl -I https://learn.edu` |
+
+---
+
+> 🔒 **Security Tip:**
+> Always disable root SSH login (`PermitRootLogin no`) and use SSH Key Pairs instead of passwords.

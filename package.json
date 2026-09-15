@@ -6,20 +6,24 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "node -e \"const fs=require('fs'); const p='./node_modules/nextra-theme-docs/dist/schemas.js'; if(fs.existsSync(p)){let c=fs.readFileSync(p,'utf8'); if(c.includes('children: reactNode,')){fs.writeFileSync(p, c.replace('children: reactNode,', 'children: reactNode.optional(),'));}}\""
   },
   "dependencies": {
-    "next": "16.3.4",
+    "next": "15.3.9",
+    "nextra": "^4.6.1",
+    "nextra-theme-docs": "^4.6.1",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.4",
+    "eslint-config-next": "15.3.9",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

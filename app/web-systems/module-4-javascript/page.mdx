@@ -1,0 +1,51 @@
+# ⚡ Module 4: JavaScript Essentials
+
+JavaScript is the programming language of the Web. It allows developers to make web pages interactive and handle dynamic data.
+
+---
+
+## What Can JavaScript Do?
+
+- Dynamically update HTML content and styles (DOM manipulation).
+- Respond to user events (clicks, key presses, form submissions).
+- Fetch data asynchronously from APIs without reloading the page (`fetch()` API).
+
+---
+
+## Example: DOM Event Handling
+
+Just like in **W3Schools**, let's inspect a simple interactive counter script:
+
+```javascript
+// Select the button and counter elements
+const button = document.getElementById("click-btn");
+const display = document.getElementById("count-display");
+
+let count = 0;
+
+button.addEventListener("click", () => {
+  count++;
+  display.textContent = `Total Clicks: ${count}`;
+});
+```
+
+---
+
+## Fetching Data from an API
+
+```javascript
+async function loadCourseData() {
+  try {
+    const response = await fetch("/api/courses");
+    const data = await response.json();
+    console.log("Loaded courses:", data);
+  } catch (error) {
+    console.error("Failed to load courses:", error);
+  }
+}
+```
+
+---
+
+> 🚀 **Challenge:**
+> Try writing a function that validates if a student input email ends with `@school.edu.ph`!

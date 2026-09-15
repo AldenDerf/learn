@@ -1,0 +1,45 @@
+import { Footer, Layout, Navbar } from 'nextra-theme-docs';
+import { getPageMap } from 'nextra/page-map';
+import Link from 'next/link';
+
+export default async function WebSystemsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pageMap = await getPageMap('/web-systems');
+
+  return (
+    <Layout
+      navbar={
+        <Navbar
+          logo={
+            <div className="x:flex x:items-center x:gap-2">
+              <span className="x:text-xl">🌐</span>
+              <span className="x:font-bold x:text-base">Web Systems & Tech</span>
+            </div>
+          }
+          projectLink="https://github.com/xxoo3034/learn"
+        >
+          <Link
+            href="/"
+            className="x:text-sm x:font-medium x:text-gray-600 hover:x:text-black x:dark:text-gray-400 dark:hover:x:text-white"
+          >
+            🏠 Home
+          </Link>
+          <Link
+            href="/sys-admin"
+            className="x:text-sm x:font-medium x:text-gray-600 hover:x:text-black x:dark:text-gray-400 dark:hover:x:text-white"
+          >
+            🖥️ SysAdmin →
+          </Link>
+        </Navbar>
+      }
+      pageMap={pageMap}
+      docsRepositoryBase="https://github.com/xxoo3034/learn"
+      footer={<Footer>MIT {new Date().getFullYear()} © aldender • Web Systems and Technologies</Footer>}
+    >
+      {children}
+    </Layout>
+  );
+}

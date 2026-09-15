@@ -1,0 +1,56 @@
+# 🎨 Module 3: HTML & CSS Basics
+
+HTML gives structure to webpages, while CSS styles and designs the visual layout.
+
+---
+
+## 1. HTML (HyperText Markup Language)
+
+HTML elements are represented by tags like `<h1>`, `<p>`, `<div>`, and `<a>`.
+
+### Example: Semantic HTML Structure
+
+```html
+<header>
+  <h1>Course Portal</h1>
+  <nav>
+    <a href="/web-systems">Web Systems</a> |
+    <a href="/sys-admin">SysAdmin</a>
+  </nav>
+</header>
+
+<main>
+  <article>
+    <h2>Lesson 1: Introduction</h2>
+    <p>Semantic tags make your markup accessible and SEO-friendly.</p>
+  </article>
+</main>
+```
+
+---
+
+## 2. CSS (Cascading Style Sheets)
+
+CSS defines the colors, fonts, margins, padding, and layout (Flexbox & Grid).
+
+### Example: CSS Flexbox Layout
+
+```css
+.card-container {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.card {
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  background-color: #f4f4f5;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+```
+
+---
+
+> 📝 **Lab Tip:**
+> Always write CSS rules mobile-first using media queries (`@media (min-width: 768px)`).

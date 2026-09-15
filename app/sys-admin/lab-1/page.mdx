@@ -1,0 +1,49 @@
+# 🧪 Laboratory 1: Linux CLI Environment Setup
+
+**Subject:** System Administration and Maintenance
+
+**Objective:** Set up a local Linux environment (Ubuntu via WSL or VirtualBox) and execute basic administrative commands.
+
+---
+
+## Instructions
+
+1. Kung Windows ang inyong OS, i-install ang **WSL (Windows Subsystem for Linux)** o mag-install ng **Ubuntu Server** sa VirtualBox.
+   ```powershell
+   wsl --install -d Ubuntu
+   ```
+2. Kapag naka-login na sa Ubuntu shell:
+   - I-update ang package repository:
+     ```bash
+     sudo apt update && sudo apt upgrade -y
+     ```
+   - Gumawa ng directory structure para sa inyong laboratory submissions:
+     ```bash
+     mkdir -p ~/sysadmin-labs/lab1
+     ```
+
+---
+
+## Deliverables & Tasks
+
+1. **System Info Report**:
+   Patakbuhin ang sumusunod na commands at i-save ang output sa isang text file na may pangalang `sysinfo.txt`:
+   ```bash
+   uname -a >> sysinfo.txt
+   lscpu >> sysinfo.txt
+   free -m >> sysinfo.txt
+   ```
+
+2. **User Creation**:
+   Gumawa ng bagong user na may pangalang `operator1`:
+   ```bash
+   sudo adduser operator1
+   ```
+
+3. **File Permissions**:
+   Gumawa ng file sa `~/sysadmin-labs/lab1/secret.txt` at i-set ang permission sa `600` (read & write for owner only).
+
+---
+
+> 📤 **Submission Note:**
+> Kumuha ng screenshot ng inyong terminal session na nagpapakita ng `ls -l` at ipasa sa portal bago ang takdang araw.

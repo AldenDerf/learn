@@ -1,0 +1,14 @@
+{
+  "index": {
+    "title": "Home",
+    "type": "page"
+  },
+  "web-systems": {
+    "title": "Web Systems & Tech",
+    "type": "page"
+  },
+  "sys-admin": {
+    "title": "System Admin & Maintenance",
+    "type": "page"
+  }
+}
