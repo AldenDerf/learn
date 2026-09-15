@@ -59,9 +59,9 @@ Here is the exact journey from writing code to seeing output:
 | Tool | What it is | Its specific job | What happens if it is missing? |
 |---|---|---|---|
 | **Node.js** | JavaScript Runtime | Executes JavaScript outside of a web browser. | Your computer cannot run server-side JavaScript. |
-| **TypeScript** | Typed Superset of JS | Checks your code for mistakes before it runs and strips type annotations. | Node.js will throw a syntax error if given raw `.ts` files directly. |
+| **TypeScript** | Typed Superset of JS | Provides static type checking during development to catch errors before runtime, and strips type annotations to produce plain JavaScript. | Node.js will throw a syntax error if given raw `.ts` files directly. |
 | **pnpm** | Fast Package Manager | Downloads, caches, and organizes libraries and command-line tools into `node_modules`. | You cannot easily install or manage external libraries. |
-| **tsx** | TypeScript Execute Tool | Transpiles TypeScript on the fly in memory and runs it immediately with Node.js during development. | You would have to manually run `tsc` to produce `.js` files every time you test an edit. |
+| **tsx** | Fast Development Runner | Transpiles TypeScript on the fly in memory (stripping types) and runs the code immediately with Node.js during development. | You would have to manually run `tsc` to produce `.js` files every time you test an edit. |
 
 > [!IMPORTANT]
 > **Source Code vs. Running Program:**  
@@ -239,6 +239,17 @@ pnpm exec tsx src/index.ts
 [BSIT-3] Maria Santos (Status: Active)
 Program finished successfully.
 ```
+
+> [!IMPORTANT]
+> **Understanding `tsx` vs. Full Type-Checking (`tsc --noEmit`):**
+> - **Static Type Checking:** TypeScript analyzes your code at edit/build time. It checks that variables, function parameters, and return types match your declared contracts *before* anything runs.
+> - **Type Erasure:** Node.js cannot read TypeScript types. During transpilation, all types, interfaces, and annotations are stripped away, leaving pure JavaScript.
+> - **What `tsx` does:** `tsx` is designed for speed and convenience during local development. It strips types on the fly and immediately runs the code in Node.js. However, **running a file with `tsx` does not perform a complete static type check across your project**. In some situations, `tsx` will execute code even if subtle type mismatches exist!
+> - **How to perform a full type check:** When you want to verify that your entire project is strictly type-safe without emitting JavaScript files or starting the program, run:
+>   ```powershell
+>   pnpm exec tsc --noEmit
+>   ```
+>   The `--noEmit` flag tells the TypeScript compiler: *"Check every file for type errors according to `tsconfig.json`, but do not produce output `.js` files."*
 
 ### Method B: Using `package.json` scripts (Recommended)
 Real projects don't require typing long terminal commands every time. Open your `package.json` and look at the `"scripts"` block. Add `"dev"` and `"build"`:
