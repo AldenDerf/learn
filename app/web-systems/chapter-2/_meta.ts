@@ -12,6 +12,7 @@ const meta = {
   },
   'server-lifecycle': '2.1 Server & Request Lifecycle',
   'first-express-server': '2.1.1 Your First Express Server',
+  'request-response-lifecycle': '2.1.2 Understanding the Request/Response Lifecycle',
   'rest-architecture': '2.2 REST & Architecture'
 };
 
