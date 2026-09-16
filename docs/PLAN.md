@@ -40,6 +40,13 @@ Keep existing full Foundation handouts intact. The application may use PostgreSQ
 
 ## Known baseline and content sources
 
+### Temporary Chapter 2.2 visibility and portal layout
+
+- Chapter 2.2 is temporarily hidden with `display: 'hidden'` in chapter metadata; its overview heading retains the text without a route link. Its direct route and canonical source remain intact.
+- Web Systems uses Nextra's article `bottomContent` for the minimal “Learn by AldenDerf” footer, keeping it within the sidebar's sticky container. The top navbar project action is removed; repository/edit links remain.
+- Verified lint, TypeScript, and production build (build required worker permissions after sandbox `spawn EPERM`); browser checks covered all six classroom routes plus the retained 2.2 route, desktop/light/dark reading and footer, mobile menu, and reflow at 320 px.
+- Next: restore the Chapter 2.2 metadata entry and overview link when the instructor reopens it next meeting. No Chapter 2.2 development is included in this update; unresolved original sources remain as documented below.
+
 - Local app: Next.js 15.3.9, Nextra 4.6.x, React 19.2.8, Tailwind 4, TypeScript strict, pnpm 11.25.0 in package.json at inspection.
 - Local `app/web-systems` and `app/sys-admin` contain existing uncommitted work and sample course structure. They have not been accepted as the authoritative ITE 303/ITM 402 syllabus.
 - No Git remote was listed during inspection. Do not guess a push destination.

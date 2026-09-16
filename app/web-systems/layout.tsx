@@ -1,4 +1,4 @@
-import { Footer, Layout, Navbar } from 'nextra-theme-docs';
+import { Layout, Navbar } from 'nextra-theme-docs';
 import { getPageMap } from 'nextra/page-map';
 import Link from 'next/link';
 import { SYSTEM_ADMIN_AVAILABLE } from '@/lib/course-availability';
@@ -20,7 +20,6 @@ export default async function WebSystemsLayout({
               <span className="x:font-bold x:text-base">Web Systems & Tech</span>
             </div>
           }
-          projectLink="https://github.com/xxoo3034/learn"
         >
           <Link
             href="/"
@@ -40,7 +39,7 @@ export default async function WebSystemsLayout({
       }
       pageMap={pageMap}
       docsRepositoryBase="https://github.com/xxoo3034/learn"
-      footer={<Footer>MIT {new Date().getFullYear()} © aldender • Web Systems and Technologies</Footer>}
+      footer={null}
     >
       {children}
     </Layout>
