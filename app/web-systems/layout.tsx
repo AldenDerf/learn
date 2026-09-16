@@ -1,6 +1,7 @@
 import { Footer, Layout, Navbar } from 'nextra-theme-docs';
 import { getPageMap } from 'nextra/page-map';
 import Link from 'next/link';
+import { SYSTEM_ADMIN_AVAILABLE } from '@/lib/course-availability';
 
 export default async function WebSystemsLayout({
   children,
@@ -27,12 +28,14 @@ export default async function WebSystemsLayout({
           >
             🏠 Home
           </Link>
-          <Link
-            href="/sys-admin"
-            className="x:text-sm x:font-medium x:text-gray-600 hover:x:text-black x:dark:text-gray-400 dark:hover:x:text-white"
-          >
-            🖥️ SysAdmin →
-          </Link>
+          {SYSTEM_ADMIN_AVAILABLE ? (
+            <Link
+              href="/sys-admin"
+              className="x:text-sm x:font-medium x:text-gray-600 hover:x:text-black x:dark:text-gray-400 dark:hover:x:text-white"
+            >
+              🖥️ SysAdmin →
+            </Link>
+          ) : null}
         </Navbar>
       }
       pageMap={pageMap}

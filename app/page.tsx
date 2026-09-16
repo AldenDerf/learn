@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SYSTEM_ADMIN_AVAILABLE } from "@/lib/course-availability";
 
 const subjects = [
   {
@@ -18,6 +19,10 @@ const subjects = [
     current: false,
   },
 ] as const;
+
+const availableSubjects = subjects.filter(
+  (subject) => subject.href !== "/sys-admin" || SYSTEM_ADMIN_AVAILABLE
+);
 
 export default function HomePage() {
   return (
@@ -47,7 +52,7 @@ export default function HomePage() {
           </div>
 
           <div className="mt-6 grid gap-5 md:grid-cols-2">
-            {subjects.map((subject) => (
+            {availableSubjects.map((subject) => (
               <article
                 key={subject.code}
                 className="flex flex-col rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-xl shadow-black/10"

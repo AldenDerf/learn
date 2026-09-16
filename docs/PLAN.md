@@ -50,6 +50,12 @@ Keep existing full Foundation handouts intact. The application may use PostgreSQ
 - The instructor subsequently authorized new drafts and provided the syllabus. Draft pack: `docs/ite303/chapter-2/README.md`. Sample projects compiled and 23 local HTTP cases passed; student exercise solutions, platform integration, and publication remain pending. See the pack's verification notes.
 - Existing public site: https://ite-303-docs.aldenderf.com (availability was not verified in the initial review).
 
+## Temporary System Administration availability
+
+System Administration is temporarily unavailable to students. `SYSTEM_ADMIN_AVAILABLE` in `lib/course-availability.ts` controls the homepage card, Web Systems navbar link, and the `/sys-admin` layout's `notFound()` guard (including child routes). The root `app/_meta.json` entry is also hidden. All course sources and metadata are retained.
+
+To reopen the course, set the flag to `true` and remove `display: "hidden"` from its root metadata entry, then rebuild and verify navigation and direct routes. ITE 303 remains available; this release gate does not implement authentication.
+
 ## Later milestones
 
 1. Establish authentication, instructor/student roles, subject enrollment, PostgreSQL, and Prisma migrations.

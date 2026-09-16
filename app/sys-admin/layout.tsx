@@ -1,12 +1,18 @@
 import { Footer, Layout, Navbar } from 'nextra-theme-docs';
 import { getPageMap } from 'nextra/page-map';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { SYSTEM_ADMIN_AVAILABLE } from '@/lib/course-availability';
 
 export default async function SysAdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  if (!SYSTEM_ADMIN_AVAILABLE) {
+    notFound();
+  }
+
   const pageMap = await getPageMap('/sys-admin');
 
   return (
