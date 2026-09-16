@@ -17,6 +17,20 @@
 
 These six canonical `.mdx` files are imported by thin `page.mdx` wrappers under `app/web-systems/chapter-2`. Edit the canonical file, not a duplicate in the route. The existing Nextra configuration and public URLs are unchanged.
 
+## Educational callouts
+
+Canonical MDX uses Nextra 4.6.1's `Callout`, registered globally in `mdx-components.tsx`; no per-lesson import is needed.
+
+```mdx
+<Callout type="important">
+
+Keep the instructional text and Markdown formatting here.
+
+</Callout>
+```
+
+Use `important` for important instructions, `warning` for warnings/cautions, `info` for notes, and `default` for tips. Keep ordinary quotations as Markdown blockquotes. Use explicit callouts instead of `> [!IMPORTANT]`-style markers in canonical lessons.
+
 ## Supporting references
 
 - [Legacy combined 2.1 handout](01-server-lifecycle.md): preserved for reference and hidden from normal student navigation.

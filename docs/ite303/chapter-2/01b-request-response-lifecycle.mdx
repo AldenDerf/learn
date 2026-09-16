@@ -167,8 +167,11 @@ req.method and req.path -> read from the incoming request
 res.send(message)       -> sends the outgoing response
 ```
 
-> [!IMPORTANT]
-> `req` and `res` belong to one request-response exchange. A new browser request produces a new pair of request and response objects.
+<Callout type="important">
+
+`req` and `res` belong to one request-response exchange. A new browser request produces a new pair of request and response objects.
+
+</Callout>
 
 ---
 
@@ -280,8 +283,11 @@ You should observe:
 
 In this controlled exercise, you are sending one short text value. Real applications must check query values before trusting or using them. You will practice validation later.
 
-> [!NOTE]
-> A query string is not part of the Express route path. All three requests above match the same `/students` route.
+<Callout type="info">
+
+A query string is not part of the Express route path. All three requests above match the same `/students` route.
+
+</Callout>
 
 ---
 

@@ -50,9 +50,12 @@ They communicate using **HTTP (Hypertext Transfer Protocol)**:
                 │                                                   │
 ```
 
-> [!IMPORTANT]
-> **HTTP is Request-Response Driven:**  
-> The server **never speaks until spoken to**. A client sends an **HTTP Request**, the server processes it, and the server sends back exactly one **HTTP Response**. Once the response is sent, that single exchange is complete.
+<Callout type="important">
+
+**HTTP is Request-Response Driven:**  
+The server **never speaks until spoken to**. A client sends an **HTTP Request**, the server processes it, and the server sends back exactly one **HTTP Response**. Once the response is sent, that single exchange is complete.
+
+</Callout>
 
 ---
 
@@ -269,9 +272,12 @@ Content-Type: application/json
 
 As a backend developer, you will frequently test endpoints from your command line without opening a browser.
 
-> [!WARNING]
-> **PowerShell Alert: Use `curl.exe`, not `curl`!**  
-> In Windows PowerShell 5.1, typing `curl` runs an alias for `Invoke-WebRequest`, which has different flags. Always explicitly type **`curl.exe`** in Windows to use the standard curl utility!
+<Callout type="warning">
+
+**PowerShell Alert: Use `curl.exe`, not `curl`!**  
+In Windows PowerShell 5.1, typing `curl` runs an alias for `Invoke-WebRequest`, which has different flags. Always explicitly type **`curl.exe`** in Windows to use the standard curl utility!
+
+</Callout>
 
 Here is how you use `curl.exe` to inspect real HTTP headers and responses:
 
