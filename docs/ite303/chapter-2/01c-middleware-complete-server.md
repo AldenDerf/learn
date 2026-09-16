@@ -1,0 +1,646 @@
+# 2.1.3 Middleware & Building a Complete Express Server
+
+**ITE 303 - Web Systems and Technologies 2**
+
+**Chapter 2: Scalable REST API Architecture with Express.js**
+
+---
+
+## What You Will Learn
+
+By the end of this lesson, you should be able to:
+
+1. Explain why several routes might need the same preparation step.
+2. Register logging middleware with `app.use()` and explain `next()`.
+3. Predict how middleware order changes a request's journey.
+4. Read a simple JSON body using `express.json()` and `req.body`.
+5. Reject missing required data with one `400` response.
+6. Explain a final `404` fallback and a simple error handler.
+7. Combine your routes and middleware into a small server.
+8. Trace a successful or invalid request from client to response.
+
+## Before You Start
+
+Continue in the **separate** `ite303-express-basics` practice project from [2.1.1](/web-systems/chapter-2/first-express-server) and [2.1.2](/web-systems/chapter-2/request-response-lifecycle). Keep its packages, scripts, and TypeScript configuration. Do not add Express to the learning platform.
+
+Your current mental model is:
+
+```text
+Client
+   | HTTP request
+   v
+Express
+   | Match method and path
+   v
+Route handler
+   | Build and send response
+   v
+Client
+```
+
+**What if some code needs to run before several route handlers?** We might want to log every request, inspect incoming data, prepare data, or reject a bad request. Where should that shared work go?
+
+Work in `src/server.ts`. Keep `import express from 'express';`, `const app = express();`, and `app.listen()` from your earlier server. Add examples between app creation and listening unless instructed otherwise. When a section changes a route, **replace that route's earlier version**; do not register duplicate handlers for the same method and path.
+
+## 1. The Repeated-Code Problem
+
+Temporarily replace your GET `/students` handler with the first route below, and add GET `/courses`:
+
+```typescript
+app.get('/students', (req, res) => {
+  console.log(`${req.method} ${req.path}`);
+  res.json({ message: 'Students route' });
+});
+
+app.get('/courses', (req, res) => {
+  console.log(`${req.method} ${req.path}`);
+  res.json({ message: 'Courses route' });
+});
+```
+
+Predict what the **server terminal** will show for each request. With `pnpm dev` running, use a second PowerShell window:
+
+```powershell
+curl.exe http://localhost:4000/students
+curl.exe http://localhost:4000/courses
+```
+
+The server logs `GET /students` and `GET /courses`. The client receives JSON, not the terminal log.
+
+What if we had **30 routes**? We would copy the same logging statement 30 times. Changing its format would require editing every copy, and one forgotten copy would leave a route without logging.
+
+We need one shared step that several requests can pass through.
+
+## 2. What Is Middleware?
+
+**Middleware is a function that runs during a request's journey through Express.** It can do shared work before a route handler sends the response.
+
+```text
+Request -> Middleware -> next() -> Route handler -> Response
+```
+
+There can be several steps:
+
+```text
+Request
+   v
+Middleware A
+   | next()
+   v
+Middleware B
+   | next()
+   v
+Route handler
+   v
+Response
+```
+
+Middleware can inspect a request, add information, perform checks, continue to another matching step, or send a response itself. A fallback can also run after Express has checked the routes.
+
+## 3. Your First Middleware
+
+Put this **after `const app = express()` and before every route**:
+
+```typescript
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+```
+
+Remove the duplicated `console.log()` statements from the two routes. Keep their responses.
+
+| New part | Meaning here |
+|---|---|
+| `app.use(...)` | Registers a shared middleware step. Without a path argument, it can run for every request that reaches this position. |
+| `req` | The incoming request; we read its method and path. |
+| `res` | The response object; this logger does not send a response. |
+| `next` | The function Express supplies so this step can pass control onward. |
+
+Read `next()` as:
+
+> I am finished with my work for this request. Continue to the next matching step.
+
+It does not send a response, start a new request, or necessarily run the next route written in the file. Express continues checking the registered steps for this request.
+
+Test your existing routes:
+
+```powershell
+curl.exe http://localhost:4000/welcome
+curl.exe http://localhost:4000/students
+curl.exe http://localhost:4000/students/25
+```
+
+The terminal should include:
+
+```text
+GET /welcome
+GET /students
+GET /students/25
+```
+
+Each route still sends its own response. The shared logger runs without a copy inside each handler.
+
+**Change one thing:** temporarily comment out `next()` in the logger. Predict, then send one request with a time limit:
+
+```powershell
+curl.exe --max-time 3 http://localhost:4000/welcome
+```
+
+The log appears, but the client times out: the logger neither sent a response nor passed control onward. Restore `next()` before continuing.
+
+Calling `next()` also does **not** end the current JavaScript function. Keep it as the logger's final statement here. If middleware sends the completed response itself, stop that response path instead of also calling `next()`.
+
+## 4. Predict Before Running
+
+Temporarily replace the logger with these two steps and add `/hello` before the other routes:
+
+```typescript
+app.use((req, res, next) => {
+  console.log('A');
+  next();
+});
+
+app.use((req, res, next) => {
+  console.log('B');
+  next();
+});
+
+app.get('/hello', (req, res) => {
+  console.log('C');
+  res.send('Hello');
+});
+```
+
+Before running `curl.exe http://localhost:4000/hello`, write your predicted terminal order.
+
+<details>
+<summary>Compare your prediction after testing</summary>
+
+```text
+A
+B
+C
+```
+
+The first middleware passes control onward, then the second does the same. The matching handler sends `Hello` to the client.
+
+</details>
+
+## 5. Middleware Order Matters
+
+Express checks middleware and routes in **registration order**:
+
+```text
+Request -> first app.use() -> second app.use() -> matching route -> response
+```
+
+Move the B middleware **below** `/hello`, keeping A above it:
+
+```typescript
+app.get('/hello', (req, res) => {
+  console.log('C');
+  res.send('Hello');
+});
+
+app.use((req, res, next) => {
+  console.log('B');
+  next();
+});
+```
+
+Predict and test `/hello` again. You see A and C, but no B for that request. The handler sends the response and does not call `next()`, so Express does not continue to B.
+
+**Check:** Would B still run for `/students` if that route is below B? Yes: `/hello` does not match, so Express continues checking and reaches B.
+
+After this experiment, remove A, B, and `/hello`. Restore the shared method-and-path logger above all routes. We will keep that logger for the rest of the lesson.
+
+## 6. Built-In Middleware: `express.json()`
+
+A client wants to send this body to `POST /students`:
+
+```json
+{
+  "name": "Ana",
+  "course": "BSIT"
+}
+```
+
+How can the route read those values? Express supplies middleware that parses incoming JSON. Add this **after the logger and before the routes**:
+
+```typescript
+app.use(express.json());
+```
+
+```text
+Client sends JSON with Content-Type: application/json
+   v
+express.json() parses the body
+   v
+req.body contains the parsed data
+   v
+POST route handler reads the data
+```
+
+`express.json()` creates the parser middleware; `app.use()` registers it. For the matching JSON content type, it prepares `req.body` before our handler needs it. A normal GET without a body simply continues onward.
+
+Parsing means turning JSON text into a JavaScript value. It does **not** check whether our required fields are present. We will add that check ourselves.
+
+## 7. Your First Simple POST Route
+
+Keep the GET routes. Add this different method-and-path pair after them:
+
+```typescript
+app.post('/students', (req, res) => {
+  const { name, course } = req.body ?? {};
+
+  res.status(201).json({
+    message: 'Student received',
+    student: { name, course },
+  });
+});
+```
+
+Only three parts are new:
+
+- `app.post()` handles POST requests. GET `/students` and POST `/students` can have different handlers.
+- `const { name, course } = ...` takes those two properties from the body. The `?? {}` uses an empty object if no parsed body is available, so reading missing data does not immediately crash the handler.
+- `201 Created` normally reports that a resource was created. We use it here to rehearse a creation response. **This classroom example only receives and echoes data; it saves nothing.** A real receive-only endpoint would normally use `200`.
+
+The server has no database or saved student list. A later GET will not retrieve Ana from this POST.
+
+## 8. How Do We Send JSON to the Server?
+
+Typing a URL into the browser sends GET. To send POST with a JSON body, use the `curl.exe` you already know.
+
+In a second PowerShell window, inside your practice project, create a small request file:
+
+```powershell
+'{"name":"Ana","course":"BSIT"}' | Set-Content -Encoding ascii student.json
+curl.exe -i -X POST http://localhost:4000/students -H "Content-Type: application/json" --data-binary "@student.json"
+```
+
+The first command writes the example JSON to `student.json`. These example values are ASCII text. The second command is **one line**: no CMD `^` continuation or fragile escaped inline JSON is needed.
+
+| Part | Purpose |
+|---|---|
+| `-i` | Show response status and headers. |
+| `-X POST` | Send a POST request. |
+| `-H "Content-Type: application/json"` | Tell the server that the body is JSON. |
+| `--data-binary "@student.json"` | Read the body from the local file. |
+
+Expect `HTTP/1.1 201 Created` and this body (spacing can differ):
+
+```json
+{
+  "message": "Student received",
+  "student": { "name": "Ana", "course": "BSIT" }
+}
+```
+
+**Try:** change Ana to Ben in the file and resend. Which part of the response changes? Check that the server terminal logs `POST /students`.
+
+These localhost tests need no internet connection once your practice dependencies are installed. Postman or Thunder Client are optional alternatives.
+
+## 9. Simple Validation
+
+What if the client sends only `{"name":"Ana"}`? The server should explain that `course` is required.
+
+Replace the previous POST handler with:
+
+```typescript
+app.post('/students', (req, res) => {
+  const { name, course } = req.body ?? {};
+
+  if (!name || !course) {
+    return res.status(400).json({
+      message: 'name and course are required',
+    });
+  }
+
+  return res.status(201).json({
+    message: 'Student received',
+    student: { name, course },
+  });
+});
+```
+
+- `!name` asks whether `name` is falsy, for example missing or an empty string.
+- `||` means **or**: either missing value triggers this check.
+- `400 Bad Request` tells the client that the submitted data is unsuitable.
+- `return` exits this handler after sending the error response. It prevents the success response below from also running.
+
+```text
+Missing field -> send 400 -> return -> handler stops
+Both present -> send 201 -> handler stops
+```
+
+This connects to **one request -> one completed response**. Sending a response does not by itself stop JavaScript from executing later statements; `return` stops this handler path.
+
+Predict, then test:
+
+```powershell
+'{"name":"Ana"}' | Set-Content -Encoding ascii student.json
+curl.exe -i -X POST http://localhost:4000/students -H "Content-Type: application/json" --data-binary "@student.json"
+```
+
+Expect status `400` and `{"message":"name and course are required"}`. Restore both fields and confirm `201` again. Then try `{}` and an empty course string.
+
+This is only a simple presence check. It does not enforce text types or reject whitespace-only strings. Complete input validation belongs in a later lesson.
+
+## 10. What If No Route Matches?
+
+Add a final normal middleware **after every route**, before `app.listen()`:
+
+```typescript
+app.use((req, res) => {
+  res.status(404).json({
+    message: 'Route not found',
+  });
+});
+```
+
+Test:
+
+```powershell
+curl.exe -i http://localhost:4000/does-not-exist
+```
+
+Expect `404` and `{"message":"Route not found"}`.
+
+```text
+Logger -> JSON parser -> no matching route -> 404 fallback -> response
+```
+
+The fallback has no path restriction, so it answers requests that reach this position. It goes last so real routes have their chance first. It does not call `next()` because it completes the response.
+
+**Predict:** If you moved it above `/welcome`, what would `/welcome` return? It would receive the fallback's 404 before its route could run. Keep the fallback below all routes.
+
+A missing route is not automatically an exception. That is why this ordinary fallback is separate from error middleware.
+
+## 11. Simple Error Handling
+
+Sometimes processing a request fails unexpectedly. Express can send that failure to **error-handling middleware**.
+
+Add this type import beside the existing Express import:
+
+```typescript
+import type { ErrorRequestHandler } from 'express';
+```
+
+After the 404 fallback, add:
+
+```typescript
+const handleError: ErrorRequestHandler = (err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ message: 'Something went wrong' });
+};
+
+app.use(handleError);
+```
+
+`ErrorRequestHandler` gives TypeScript the parameter types. The four parameters are **`err, req, res, next`**. Express recognizes this four-parameter shape as an error handler. Keep all four even though this small handler does not use `req` or `next`.
+
+When a synchronous route handler throws an error, Express catches it and skips ordinary middleware, including the 404 fallback, to find an error handler. Code can also pass an error using `next(err)`. Unlike plain `next()`, this enters the error path.
+
+```text
+Unexpected error before a response
+   -> Express enters error path
+   -> handleError logs the error
+   -> client receives 500 and a JSON message
+```
+
+For a quick optional check, temporarily add this route **above the 404 fallback**:
+
+```typescript
+app.get('/error-demo', (req, res) => {
+  throw new Error('Practice error');
+});
+```
+
+Run `curl.exe -i http://localhost:4000/error-demo`. Expect `500` and `{"message":"Something went wrong"}`. Remove the demo route afterward.
+
+Keep using correctly formed JSON in the body exercises. Malformed JSON fails inside the parser before validation runs; this deliberately minimal error handler also returns `500` for that failure. A later, more complete handler should distinguish client parsing errors with `400`.
+
+## 12. Build the Complete Beginner Server
+
+You have now introduced every piece. Before comparing code, arrange your practice file in this order:
+
+```text
+Imports -> create app -> logger -> JSON parser
+   -> GET routes -> POST route with validation
+   -> 404 fallback -> error middleware -> listen
+```
+
+Restore the query-aware GET `/students` from 2.1.2, and keep its JSON student-detail route. Here is the complete small `src/server.ts` for comparison. The temporary experiments and `/courses` demonstration are left out so you can focus on the combined lifecycle.
+
+```typescript
+import express from 'express';
+import type { ErrorRequestHandler } from 'express';
+
+const app = express();
+
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
+app.use(express.json());
+
+app.get('/welcome', (req, res) => {
+  res.send('Welcome to ITE 303!');
+});
+
+app.get('/about', (req, res) => {
+  res.send('This is my first Express server.');
+});
+
+app.get('/students/:id', (req, res) => {
+  const studentId = req.params.id;
+  const course = String(req.query.course ?? 'not provided');
+  res.status(200).json({
+    message: 'Student request received',
+    studentId: studentId,
+    course: course,
+  });
+});
+
+app.get('/students', (req, res) => {
+  const course = String(req.query.course ?? 'all courses');
+  res.send(`Course filter: ${course}`);
+});
+
+app.post('/students', (req, res) => {
+  const { name, course } = req.body ?? {};
+  if (!name || !course) {
+    return res.status(400).json({
+      message: 'name and course are required',
+    });
+  }
+  return res.status(201).json({
+    message: 'Student received',
+    student: { name, course },
+  });
+});
+
+app.use((req, res) => {
+  res.status(404).json({ message: 'Route not found' });
+});
+
+const handleError: ErrorRequestHandler = (err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ message: 'Something went wrong' });
+};
+
+app.use(handleError);
+
+app.listen(4000, () => {
+  console.log('Server running at http://localhost:4000');
+});
+```
+
+Run `pnpm typecheck` in your practice project, then run or keep `pnpm dev` running. Use the earlier curl commands and compare:
+
+| Request | Expected result |
+|---|---|
+| GET `/welcome` | `200`, welcome text |
+| GET `/students/25` | `200`, JSON with `studentId: "25"` |
+| GET `/students?course=BSIT` | `200`, `Course filter: BSIT` |
+| POST `/students`, both fields | `201`, echoed student data; nothing saved |
+| POST `/students`, missing course | `400`, required-fields message |
+| GET `/does-not-exist` | `404`, route-not-found message |
+
+The detail route requires an ID segment, so `/students` does not match it. The GET and POST collection routes are distinguished by method. Every test also reaches the logger.
+
+## 13. Trace the Complete Lifecycle
+
+### A. GET `/students/25`
+
+```text
+Client sends GET /students/25
+   -> logger prints GET /students/25
+   -> express.json() has no JSON body to parse; continues
+   -> Express matches GET /students/:id
+   -> handler reads req.params.id ("25")
+   -> res.status(200).json(...) sends the response
+   -> client receives JSON
+```
+
+### B. POST `/students`
+
+```text
+Client sends {"name":"Ana","course":"BSIT"} as JSON
+   -> logger prints POST /students
+   -> express.json() parses the body
+   -> req.body contains name and course
+   -> Express matches POST /students
+   -> validation finds both required values
+   -> client receives 201 and echoed JSON
+```
+
+Change only the body by removing `course`:
+
+```text
+Parsed body is missing course
+   -> POST handler's validation fails
+   -> 400 response is sent
+   -> return stops the handler
+```
+
+Neither successful nor invalid POST continues into the 404 fallback. The normal validation response also does not need the error handler.
+
+## 14. Try It Yourself
+
+Try each task before opening its hint. Add new routes **above** the 404 fallback.
+
+### A. Change the shared logger
+
+Make a request to `/courses` print `Request received: GET /courses`. Predict whether logging still happens if that route does not exist yet.
+
+<details>
+<summary>Hint for A</summary>
+
+Change the logger's template string to `` `Request received: ${req.method} ${req.path}` ``. The logger is above the fallback, so an unknown route is logged too.
+
+</details>
+
+### B. Receive a course
+
+Create POST `/courses` for `{"code":"ITE303","title":"Web Systems and Technologies 2"}`. Echo the course in JSON with status `201`, following the same classroom creation-response convention. Do not save data. Use a separate `course.json` request file and test with `curl.exe`.
+
+<details>
+<summary>Hint for B</summary>
+
+Use `app.post()`, read `code` and `title` from `req.body ?? {}`, and send a JSON response. The existing parser already covers this new route.
+
+</details>
+
+### C. Reject incomplete course data
+
+Return `400` when either course field is missing. Test both fields present, missing code, missing title, and `{}`. Confirm only one response is sent per request.
+
+<details>
+<summary>Hint for C</summary>
+
+Use `if (!code || !title)` before the success response. Return immediately after sending the `400` response.
+
+</details>
+
+### D. Explain the fallback
+
+Request GET `/unknown-course`. Write the steps from logger to response. Explain what would change if the fallback were placed before POST `/courses`.
+
+<details>
+<summary>Hint for D</summary>
+
+Logger -> parser -> no matching route -> fallback -> 404. An early fallback would also answer the POST before its intended route could run.
+
+</details>
+
+## 15. Check Your Understanding
+
+1. Why is one logging middleware easier to maintain than logging in 30 handlers?
+2. What does `next()` mean for the current request? What if the logger neither calls it nor sends a response?
+3. Why might middleware below a route fail to run for that route's request?
+4. What does `express.json()` do, and why must it go before the POST handler?
+5. Where does the POST handler read the parsed JSON values?
+6. Why return after sending the `400` response?
+7. Why is the 404 fallback after normal routes, and how is it different from error middleware?
+8. Trace a valid POST from the client to its response. Which step changes when `course` is missing?
+
+<details>
+<summary>View the concise answers</summary>
+
+1. The shared behavior is written and changed in one place.
+2. Continue to the next matching step for this request. Without continuation or a response, the request waits unanswered.
+3. Express follows registration order; a handler that answers without calling `next()` does not pass control onward.
+4. It parses matching JSON request bodies into `req.body`; the handler needs that preparation first.
+5. `req.body`, for example its `name` and `course` properties.
+6. It stops the handler before it can also send the success response.
+7. Routes get the first chance to answer. A 404 fallback handles unmatched requests; four-parameter error middleware handles errors passed into Express's error flow.
+8. Client -> logger -> parser -> POST handler -> validation -> 201 JSON -> client. A missing course takes the validation branch that sends 400 and returns.
+
+</details>
+
+## 16. Before You Continue
+
+- [ ] I can explain the repeated-code problem middleware solves.
+- [ ] I can register logging middleware with `app.use()`.
+- [ ] I can explain `next()` and what happens without it.
+- [ ] I can predict the effect of middleware order.
+- [ ] I can send JSON and read `req.body`.
+- [ ] I can reject missing required data with one response.
+- [ ] I can explain the 404 fallback and the four-parameter error handler.
+- [ ] I can trace the complete Express request lifecycle.
+
+## 17. What Comes Next?
+
+Next is **Lab 2.1 — Initializing a Basic Typed Express Server with Dynamic Routing Handlers**.
+
+You will apply **2.1.1 + 2.1.2 + 2.1.3** with less step-by-step guidance: start a server, match routes, read request data, arrange middleware, and send one appropriate response. First, make sure you can explain each step in your current server without guessing.
+
+### References
+
+- [Express: using middleware](https://expressjs.com/en/guide/using-middleware/)
+- [Express 5 API reference](https://expressjs.com/en/5x/api/)
+- [Express: error handling](https://expressjs.com/en/guide/error-handling/)

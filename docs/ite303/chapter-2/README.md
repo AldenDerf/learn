@@ -8,6 +8,14 @@
 
 ## Read in order
 
+For the beginner teaching sequence under topic 2.1, follow:
+
+- [2.1.1 Your First Express Server](01a-first-express-server.md)
+- [2.1.2 Understanding the Request/Response Lifecycle](01b-request-response-lifecycle.md)
+- [2.1.3 Middleware & Building a Complete Express Server](01c-middleware-complete-server.md)
+
+The instructor approved 2.1.1 and 2.1.2 and requested 2.1.3 as the final instructional sublesson before Lab 2.1. The older combined lesson below is preserved as source/reference material; its cleanup and Lab 2.1 are separate tasks.
+
 1. [Prerequisite 1: Running Your First Node.js + TypeScript Program](00a-first-nodejs-typescript.md)
 2. [Prerequisite 2: Understanding HTTP Requests & Responses](00b-http-requests-responses.md)
 3. [2.1 Server Orchestration & Request/Response Lifecycle](01-server-lifecycle.md)

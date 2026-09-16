@@ -28,6 +28,13 @@ The instructor needs Chapter 2 for the next class. Finish the teaching material 
 
 Keep existing full Foundation handouts intact. The application may use PostgreSQL later while the original teaching material retains its existing MySQL examples.
 
+### Beginner 2.1 sequence update
+
+- [x] Retain instructor-approved 2.1.1 and 2.1.2; remove their temporary draft labels.
+- [x] Add 2.1.3 Middleware & Building a Complete Express Server, with a canonical handout and thin route wrapper after 2.1.2.
+- Next: instructor review of 2.1.3, then a separately scoped Lab 2.1. Do not retire the combined `01-server-lifecycle.md` or its route until 2.1.3 and Lab 2.1 are complete.
+- Original Chapter 2 source handouts remain unresolved; this sequence is instructor-requested new material derived from the local teaching pack.
+
 ## Known baseline and content sources
 
 - Local app: Next.js 15.3.9, Nextra 4.6.x, React 19.2.8, Tailwind 4, TypeScript strict, pnpm 11.25.0 in package.json at inspection.
