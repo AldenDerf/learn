@@ -1,0 +1,388 @@
+# Lab 2.1 — Basic Typed Express Server with Dynamic Routing
+
+**ITE 303 — Web Systems and Technologies 2**
+
+**Topic: 2.1 Server Orchestration & Request/Response Lifecycle**
+
+**Laboratory activity — Draft for instructor review**
+
+## Overview
+
+Build a small Student Information API in TypeScript and Express. Your server will read request data, run shared middleware, and return a clear response for each request.
+
+This activity assesses the syllabus task: **initializing a basic typed Express server with dynamic routing handlers**. Use the lessons as references, but write and explain your own implementation. This handout gives requirements and test cases, not a complete `server.ts` solution.
+
+Suggested pace for one three-hour laboratory session: 25 minutes for setup, 70 minutes for implementation, 45 minutes for testing and fixes, and 40 minutes for evidence and explanation. Finish the required work before attempting optional challenges.
+
+## Learning Outcomes
+
+By completing this lab, you should be able to:
+
+1. Initialize a Node.js project with TypeScript and Express 5.
+2. Configure strict type checking and start the server.
+3. Define basic GET and POST routes.
+4. Read a dynamic path parameter with `req.params`.
+5. Read an optional query parameter with `req.query`.
+6. Return JSON with an appropriate HTTP status.
+7. Register shared middleware and use `next()` correctly.
+8. Parse JSON using `express.json()` and read `req.body`.
+9. Reject missing required data with a single response.
+10. Handle an unknown route with a final 404 fallback.
+11. Test endpoints and record actual results.
+12. Explain a request's journey from client to response.
+
+## Before You Begin
+
+Complete these lessons first:
+
+- [P.1 First Node.js & TypeScript](/web-systems/chapter-2/first-program)
+- [P.2 HTTP Requests & Responses](/web-systems/chapter-2/http-requests-responses)
+- [2.1.1 Your First Express Server](/web-systems/chapter-2/first-express-server)
+- [2.1.2 Understanding the Request/Response Lifecycle](/web-systems/chapter-2/request-response-lifecycle)
+- [2.1.3 Middleware & Building a Complete Express Server](/web-systems/chapter-2/middleware-complete-server)
+
+Have Node.js, pnpm, a code editor, and PowerShell available. Use `curl.exe` for tests; no online API testing service is required. Package installation needs registry access or an instructor-prepared package cache. Once installed, the tests run locally.
+
+## Scenario
+
+A school wants a demonstration API that can report which student ID or course a client requested and receive a sample student's details.
+
+Use fictional values such as Ana and BSIT. Generate responses directly; you do not need a student array or database. The POST route receives and echoes data without saving it. A later GET does not retrieve a previously submitted student.
+
+## Your Task
+
+Create one working `src/server.ts` in a **new, separate lab project**. Implement Parts A–H, test the requirements in Part I, and submit your explanations and evidence.
+
+Use port **4000**. All required responses must be JSON. Keep the following contract so another student can test your server consistently; JSON spacing and property order do not matter.
+
+| Request | Status | Required JSON body |
+|---|---|---|
+| GET `/` | 200 | `{ "message": "Student Information API", "course": "ITE 303" }` |
+| GET `/students` | 200 | `{ "message": "Student information request", "course": "all courses" }` |
+| GET `/students?course=BSIT` | 200 | `{ "message": "Student information request", "course": "BSIT" }` |
+| GET `/students/3` | 200 | `{ "message": "Student request received", "studentId": "3" }` |
+| POST `/students`, valid body | 200 | `{ "message": "Student received", "student": { "name": "Ana", "course": "BSIT" } }` for the sample input |
+| POST `/students`, missing or empty required field | 400 | `{ "message": "name and course are required" }` |
+| GET `/does-not-exist` | 404 | `{ "message": "Route not found" }` |
+
+Use **200 for the successful POST in this lab because it only receives and echoes data**. Lesson 2.1.3 rehearsed a 201 creation response and explained this distinction. This lab creates no stored resource.
+
+## Part A — Project Setup
+
+Open PowerShell in the folder where you keep laboratory work, outside the `learn` repository. Stop any earlier practice server using port 4000 with `Ctrl + C`.
+
+Use the same setup as 2.1.1:
+
+```powershell
+mkdir ite303-lab-2-1
+cd ite303-lab-2-1
+pnpm init
+pnpm add express@5
+pnpm add -D typescript tsx @types/node @types/express@5
+mkdir src
+```
+
+Create `src/server.ts`. In `package.json`, add `"type": "module"` and the scripts below. This is a **merge guide**: keep the generated package information and dependency entries.
+
+```json
+{
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "typecheck": "tsc --noEmit"
+  }
+}
+```
+
+Create `tsconfig.json` using the configuration from 2.1.1:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"]
+}
+```
+
+Your project needs these files:
+
+```text
+ite303-lab-2-1/
+|-- src/
+|   `-- server.ts
+|-- package.json
+|-- pnpm-lock.yaml
+`-- tsconfig.json
+```
+
+**Checkpoint:** Explain which script starts the server and which checks types. Passing `pnpm dev` alone does not prove the project passes type checking.
+
+## Part B — Start the Express Server
+
+In `src/server.ts`:
+
+1. Import Express and create the application.
+2. Make it listen on port 4000.
+3. Print a startup message containing `http://localhost:4000` once listening begins.
+
+Run `pnpm dev` and keep that terminal open. Use a second PowerShell window for requests.
+
+<details>
+<summary>Small reminder</summary>
+
+The tools you need are `express()` and `app.listen()`. Refer to 2.1.1 if you need their syntax. Write your routes between app creation and listening.
+
+</details>
+
+Use the Express types supplied by `@types/express`. TypeScript can infer the parameters of inline route handlers as it did in the lessons; you do not need to add manual type annotations to every parameter. Keep strict checking enabled.
+
+## Part C — Basic Route
+
+Implement GET `/`. Return the API information specified in the contract with status 200 and a JSON body.
+
+**Predict, then test:** What should appear in the client window? What should appear only in the server terminal? Explain why a startup log is not an HTTP response.
+
+## Part D — Working with Query Parameters
+
+Implement GET `/students` with an optional `course` query parameter.
+
+- When `course` is absent, respond with `"all courses"`.
+- When a single course value is supplied, include that value in the response.
+- Changing BSIT to BSCS must change the response; do not hard-code BSIT.
+
+This route reports the requested course. It does not filter a real student collection.
+
+<details>
+<summary>Hint after you try</summary>
+
+Use `req.query.course`. The `??` fallback and `String(...)` pattern from 2.1.2 are enough for these single-text-value tests. The query string does not belong in the route declaration.
+
+</details>
+
+## Part E — Dynamic Routing
+
+Implement **one** GET `/students/:id` route. Read the ID using `req.params` and include it as `studentId` in the JSON response.
+
+Test `/students/1`, `/students/3`, and `/students/5`. All three must use the same handler and return the requested ID as text. Do not create a separate route for each number or look up a saved student.
+
+**Explain:** Why does `/students` use the collection handler instead of the `:id` handler? Which part of `/students/5` becomes a property on `req.params`?
+
+## Part F — Middleware
+
+Add **one shared logging middleware** before the routes. It must log the incoming method and path, such as:
+
+```text
+GET /students/5
+POST /students
+```
+
+Register it with `app.use()` and pass control onward when its work is finished. Do not duplicate the logger inside each route. A timestamp is optional and is not required for full credit.
+
+To observe the order, temporarily add a different log message inside your dynamic route. Send one request with `curl.exe` and capture the terminal showing the middleware message before the route message. Remove the temporary route message afterward if you wish.
+
+**Prediction:** If the logger neither sends a response nor calls `next()`, will the route answer? Explain before changing anything. If you try it, use `curl.exe --max-time 3` and restore the working middleware afterward.
+
+## Part G — JSON Request Body and Validation
+
+Register `express.json()` after your logger and before routes that read the body. Implement POST `/students`.
+
+For a JSON object such as this:
+
+```json
+{
+  "name": "Ana",
+  "course": "BSIT"
+}
+```
+
+Read `name` and `course` from `req.body` and meet these requirements:
+
+1. If either field is missing or an empty string, respond with status 400 and the required-fields message.
+2. Stop that handler path after sending the error response.
+3. Otherwise, return status 200 and echo the supplied values in `student`, following the contract.
+4. Send only one completed response per request. Do not save the data.
+
+<details>
+<summary>Hint after you try</summary>
+
+The `req.body ?? {}` pattern allows you to read from an empty object when no parsed body is available. Use the simple presence check and early `return` taught in 2.1.3. Parsing JSON and checking required fields are different steps.
+
+</details>
+
+For required tests, use valid JSON objects containing text fields. Full type/whitespace validation, malformed JSON handling, and custom error middleware are not assessed in this lab. The basic presence check from 2.1.3 is sufficient.
+
+## Part H — 404 Handling
+
+After all routes, add a normal fallback middleware that returns status 404 with the contract's JSON message when a request reaches it.
+
+Test GET `/does-not-exist`. Confirm the shared logger also records this request.
+
+**Explain:** Why must this fallback be below the routes? Why should it complete the response instead of calling `next()`?
+
+## Part I — Test Your API
+
+Run `pnpm typecheck` in your project and fix reported errors. Keep `pnpm dev` running in the server terminal. Run requests in a second terminal.
+
+For **each required test**:
+
+1. Write the expected status and body before sending the request.
+2. Run the request and record the actual status and body.
+3. Compare the result with the contract.
+4. If it fails, describe what you changed and retest.
+
+### GET requests
+
+Use `-i` to show the response status and headers:
+
+```powershell
+curl.exe -i http://localhost:4000/
+curl.exe -i http://localhost:4000/students
+curl.exe -i "http://localhost:4000/students?course=BSIT"
+curl.exe -i "http://localhost:4000/students?course=BSCS"
+curl.exe -i http://localhost:4000/students/1
+curl.exe -i http://localhost:4000/students/3
+curl.exe -i http://localhost:4000/students/5
+curl.exe -i http://localhost:4000/does-not-exist
+```
+
+### POST requests in Windows PowerShell
+
+Create the request file in your lab project folder. Use the same file-based approach as 2.1.3 to avoid inline JSON quoting problems. The sample names below contain only ASCII characters.
+
+```powershell
+'{"name":"Ana","course":"BSIT"}' | Set-Content -Encoding ascii student.json
+curl.exe -i -X POST http://localhost:4000/students -H "Content-Type: application/json" --data-binary "@student.json"
+```
+
+Expect status **200**, `message` equal to `Student received`, and the submitted name/course under `student`.
+
+Now overwrite only the request file and resend:
+
+```powershell
+'{"name":"Ana"}' | Set-Content -Encoding ascii student.json
+curl.exe -i -X POST http://localhost:4000/students -H "Content-Type: application/json" --data-binary "@student.json"
+```
+
+Expect status **400** and the required-fields message. For the remaining POST tests, change the JSON in the file and reuse the same curl command.
+
+### Required testing checklist
+
+| ID | Request / JSON input | Expected result |
+|---|---|---|
+| T1 | GET `/` | 200, API information |
+| T2 | GET `/students` | 200, `course` is `"all courses"` |
+| T3 | GET `/students?course=BSIT` | 200, `course` is `"BSIT"` |
+| T4 | GET `/students?course=BSCS` | 200, `course` is `"BSCS"` |
+| T5 | GET `/students/1` | 200, `studentId` is `"1"` |
+| T6 | GET `/students/3` | 200, `studentId` is `"3"` |
+| T7 | GET `/students/5` | 200, `studentId` is `"5"` |
+| T8 | POST `/students`: `{"name":"Ana","course":"BSIT"}` | 200, echoed Ana/BSIT |
+| T9 | POST `/students`: `{"name":"Ben","course":"BSCS"}` | 200, echoed Ben/BSCS |
+| T10 | POST `/students`: `{"name":"Ana"}` | 400, required-fields message |
+| T11 | POST `/students`: `{"course":"BSIT"}` | 400, required-fields message |
+| T12 | POST `/students`: `{"name":"","course":"BSIT"}` | 400, required-fields message |
+| T13 | POST `/students`: `{"name":"Ana","course":""}` | 400, required-fields message |
+| T14 | POST `/students`: `{}` | 400, required-fields message |
+| T15 | GET `/does-not-exist` | 404, route-not-found message; logger runs |
+
+Record all 15 cases. You may use a table with columns **Test ID, predicted result, actual status/body, pass/fail, fix/retest**. Do not mark a test passed merely because the server stayed running.
+
+### Troubleshooting
+
+| Symptom | What to inspect |
+|---|---|
+| Connection refused | Is the server still running on port 4000? |
+| `EADDRINUSE` | Stop your earlier practice server before starting this one. |
+| Every request returns 404 | Check fallback placement and the requested method/path. |
+| Logger prints but the request waits | Check whether the logger passes control onward. |
+| POST has no parsed fields | Check parser order, `Content-Type`, the request file, and its folder. |
+| GET works but browser testing cannot send your JSON | Use the supplied POST curl command rather than the address bar. |
+| A response triggers a second-response error | Check the validation branch and early `return`. |
+| Changes seem ignored | Save `src/server.ts` and inspect the watch terminal for restart errors. |
+| Type checking fails | Read the reported file/line; preserve the strict configuration and correct the code. |
+
+## Part J — Request/Response Trace
+
+Send GET `/students/5` to your running server. In your own words, trace:
+
+```text
+Client -> HTTP request -> middleware -> matching route
+       -> route handler -> HTTP response -> client
+```
+
+Submit short answers identifying:
+
+1. The client you used, HTTP method, and request path.
+2. Each middleware step reached, in order, and what it does for this GET.
+3. The registered route that matches and why it matches.
+4. The property used to read the ID, its value, and whether it is text or a number.
+5. The actual response status and JSON body, and the statement that completes the response.
+6. Why the 404 fallback does not answer this request.
+
+Then trace your T10 invalid POST in three or four sentences. Identify where the body is parsed, where missing data is detected, and why the success response is not sent.
+
+## Part K — Optional Beginner Challenges
+
+These are optional, are not part of the 100-point rubric, and are not required for full credit. Keep the required routes and responses working.
+
+1. Add GET `/student-search` with optional `course` and `year` queries. Echo both values and test each missing separately.
+2. Add GET `/subjects/:code`. Return the captured code as JSON and demonstrate two values using one handler.
+3. Add POST `/student-profiles` requiring `name`, `course`, and `year` as text. Echo a complete body with 200 and reject a missing field with 400. Save nothing.
+
+## Submission Requirements
+
+Submit one project folder or archive containing:
+
+- `src/server.ts`, `package.json`, `pnpm-lock.yaml`, and `tsconfig.json`.
+- Your sample request JSON file(s).
+- An `evidence` folder with a screenshot showing the running server and startup URL, plus terminal output showing middleware before the temporary route message.
+- A `report.md` or PDF containing the completed T1–T15 test table, Part J traces, and reflection answers.
+- Screenshots or saved terminal output showing the **actual** valid POST, invalid POST, and unknown-route responses, including their HTTP statuses. Label these with the matching test IDs. A single capture may show several clearly labeled cases.
+- Evidence that `pnpm typecheck` finished successfully, such as a terminal capture showing the command and returned prompt without errors.
+
+Exclude `node_modules`, generated build files, secrets, and real student records. Do not submit the learning platform repository. No public deployment is required. Be ready to run one request chosen by the instructor and explain which code handles it.
+
+## Reflection Questions
+
+Answer each in two or three sentences using your own server as the example.
+
+1. What does `app.listen()` do? Why does saving `server.ts` alone not make it answer requests?
+2. How do `req.params` and `req.query` differ in your tested URLs? Give one example of each.
+3. Why must `express.json()` run before your POST handler, and why is parsing not the same as checking required fields?
+4. What happens if your logging middleware neither calls `next()` nor sends a response? How did you determine this?
+5. What changes in the lifecycle when a valid POST becomes one with a missing field? Explain how your code still sends only one completed response.
+
+## Rubric — 100 Points
+
+Each item below states the evidence for its points. Partial credit follows the listed subitems; optional sophistication earns no additional required points.
+
+| Criterion | Points | Evidence / allocation |
+|---|---:|---|
+| Project setup and server execution | 10 | Correct packages, scripts, and strict configuration (5); successful typecheck and server running on 4000 (5). |
+| Basic and student routes | 15 | GET `/` JSON matches the contract (5); GET `/students` returns the required information (10). Query behavior is scored below. |
+| Dynamic routing | 15 | One `:id` route reads `req.params` (8); IDs 1, 3, and 5 appear correctly as text (7). |
+| Query parameters | 10 | BSIT and BSCS are read from the request (6); absent course uses the required default (4). |
+| Middleware | 10 | One shared method/path logger registered before routes (5); correct continuation and evidence of execution order (5). |
+| POST, JSON body, and validation | 15 | Parser registered before the handler (4); submitted values echoed rather than hard-coded (4); missing/empty field checks (4); invalid branch stops before success (3). |
+| HTTP responses/status codes and 404 | 10 | Correct 200/400 statuses and JSON responses (5); final unknown-route fallback returns 404 JSON without intercepting valid routes (5). |
+| Testing and evidence | 10 | Completed T1–T15 predictions and actual results, including fixes where needed (7); clearly labeled required captures/output (3). Honest failure reports can earn evidence credit even when behavior needs correction. |
+| Request/response trace and reflection | 5 | Part J accurately traces GET and invalid POST (3); reflection answers explain behavior in the student's own code (2). |
+| **Total** | **100** | |
+
+## Before You Submit
+
+- [ ] My separate lab project starts with `pnpm dev` and passes `pnpm typecheck`.
+- [ ] I implemented the required routes using request values rather than hard-coded test answers.
+- [ ] The shared logger, parser, routes, and fallback are in the correct order.
+- [ ] Each tested request receives one completed JSON response.
+- [ ] My POST echoes data and does not claim to save a student.
+- [ ] I recorded all required tests, middleware evidence, traces, and reflections.
+- [ ] My submission excludes dependencies, secrets, and real student records.
+
+Finish this activity and review your results with the instructor before moving on.

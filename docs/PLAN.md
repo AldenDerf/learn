@@ -33,7 +33,8 @@ Keep existing full Foundation handouts intact. The application may use PostgreSQ
 - [x] Retain instructor-approved 2.1.1 and 2.1.2; remove their temporary draft labels.
 - [x] Add 2.1.3 Middleware & Building a Complete Express Server, with a canonical handout and thin route wrapper after 2.1.2.
 - [x] Clean up student navigation: show the official 2.1 topic as a separator followed by 2.1.1–2.1.3; hide the legacy combined lesson from navigation and remove its landing-page link.
-- Next: a separately scoped Lab 2.1. Keep the combined `01-server-lifecycle.md` and its direct route available for reference until Lab 2.1 is complete and reviewed. The instructor has approved the beginner 2.1 sequence.
+- [x] Author Lab 2.1 as a requirements-led Student Information API activity with tests, evidence, lifecycle traces, and a 100-point rubric; link it after 2.1.3 and before 2.2.
+- Next: instructor review of the new Lab 2.1 activity and classroom use. Keep the combined `01-server-lifecycle.md` and its direct route available for reference until Lab 2.1 is complete and reviewed. The instructor has approved the beginner 2.1 lesson sequence; the new lab is marked as a draft pending review.
 - Original Chapter 2 source handouts remain unresolved; this sequence is instructor-requested new material derived from the local teaching pack.
 
 ## Known baseline and content sources
