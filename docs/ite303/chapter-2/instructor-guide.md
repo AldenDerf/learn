@@ -21,8 +21,8 @@ The neighboring database outcome on page 6 belongs to Chapter 3. It is a future 
 
 Students arrive with varied familiarity with CLI tools and web protocols. Two scaffold lessons precede Lesson 2.1:
 
-- **[Prerequisite 1: Running Your First Node.js + TypeScript Program](00a-first-nodejs-typescript.md):** Covers Node vs TS runtime roles, Windows PowerShell CLI navigation, `pnpm init`, `devDependencies`, `tsconfig.json`, `tsx`, and process termination (`Ctrl+C`). Assign this as a diagnostic reading or pre-lab preparation.
-- **[Prerequisite 2: Understanding HTTP Requests & Responses](00b-http-requests-responses.md):** Covers client-server exchanges, request anatomy (methods, path vs query params, headers, JSON body), response anatomy (status codes 200/201/400/404/500, headers, body), and `curl.exe` inspection.
+- **[Prerequisite 1: Running Your First Node.js + TypeScript Program](00a-first-nodejs-typescript.mdx):** Covers Node vs TS runtime roles, Windows PowerShell CLI navigation, `pnpm init`, `devDependencies`, `tsconfig.json`, `tsx`, and process termination (`Ctrl+C`). Assign this as a diagnostic reading or pre-lab preparation.
+- **[Prerequisite 2: Understanding HTTP Requests & Responses](00b-http-requests-responses.mdx):** Covers client-server exchanges, request anatomy (methods, path vs query params, headers, JSON body), response anatomy (status codes 200/201/400/404/500, headers, body), and `curl.exe` inspection.
 
 If laboratory diagnostics show students struggling with basic terminal execution or the mental model of HTTP, spend the first 20 minutes of the laboratory period checking Prerequisite 1 outputs (`hello-ts`) before starting the Express server code-along.
 

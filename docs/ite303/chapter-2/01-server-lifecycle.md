@@ -19,7 +19,7 @@ By the end, you should be able to:
 5. Trace middleware order, validation, successful responses, and errors.
 6. Test a dynamic route and explain the result in your own words.
 
-**Prerequisites:** Complete **[Prerequisite 1: Running Your First Node.js + TypeScript Program](00a-first-nodejs-typescript.md)** and **[Prerequisite 2: Understanding HTTP Requests & Responses](00b-http-requests-responses.md)**. You should already understand `pnpm`, functions, objects, arrays, TypeScript interfaces, and the anatomy of HTTP requests and responses. Keep those handouts as references; this lesson builds directly on them.
+**Prerequisites:** Complete **[Prerequisite 1: Running Your First Node.js + TypeScript Program](/web-systems/chapter-2/first-program)** and **[Prerequisite 2: Understanding HTTP Requests & Responses](/web-systems/chapter-2/http-requests-responses)**. You should already understand `pnpm`, functions, objects, arrays, TypeScript interfaces, and the anatomy of HTTP requests and responses. Keep those handouts as references; this lesson builds directly on them.
 
 ## 1. Start with a familiar situation
 

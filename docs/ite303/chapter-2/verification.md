@@ -1,5 +1,16 @@
 # Draft verification notes
 
+## Approved Chapter 2.1 MDX migration — September 16, 2026
+
+- Migrated the six approved canonical materials (P.1, P.2, 2.1.1–2.1.3, Lab 2.1) from `.md` to `.mdx`. Updated the six thin wrappers; retained public URLs, sidebar order, and the existing Nextra configuration. No dependency changes.
+- Removed Lab 2.1's draft label and connected the next-step links through the approved sequence. P.2 now leads to 2.1.1 instead of the legacy combined lesson. Updated the pack index, plan, and source references. The legacy and 2.2 handouts received only prerequisite link-target maintenance; their teaching content remains intact.
+- Compared all six source files against their pre-migration content: every fenced example and diagram is unchanged, disclosure counts match, and prerequisite/next-step route targets exist. No old `.md` wrapper imports or active links to the renamed files remain. Historical verification entries below retain their original filenames.
+- `pnpm lint`, `pnpm exec tsc --noEmit`, and `pnpm build` passed. The build generated 26 pages with no page-map errors. Nextra warned that Git timestamps were unavailable for the newly renamed, not-yet-committed MDX files.
+- Checked generated HTML for all six routes: one H1 per lesson, code blocks, tables, disclosure counts, no draft label, and the correct desktop/mobile sidebar sequence. Verified P.2's corrected next link and the preserved direct legacy route.
+- `git diff --check` passed. The installed Next.js guide directory is still absent; this migration follows the previously consulted Next.js 15 page convention and the installed Nextra compiler's existing MDX support.
+- Browser inventory was empty, so visual rendering, mobile reflow, keyboard interaction, and browser console checks could not be performed. Generated HTML checks do not establish those results. The previous build HTML was unavailable for a before/after visual comparison; preservation was checked against the canonical source instead.
+- This migration does not re-audit or change approved technical explanations, examples, or assessment criteria. Next step is classroom use; any further content corrections, legacy retirement, or Chapter 2.2 work require their own scope.
+
 ## 2.1.3 verification — September 16, 2026
 
 ### Scope and sources

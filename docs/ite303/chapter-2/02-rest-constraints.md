@@ -15,7 +15,7 @@ By the end, you should be able to:
 5. Refactor an Express handler into modules without changing its public behavior.
 6. Demonstrate valid, invalid, missing-resource, and empty-result requests.
 
-**Prerequisites:** Complete **[Lesson 2.1: Server Orchestration & Request/Response Lifecycle](01-server-lifecycle.md)** (and review **[Prerequisite 1](00a-first-nodejs-typescript.md)** and **[Prerequisite 2](00b-http-requests-responses.md)**). Read this as a sequence: understand the contract first, follow one request through the architectural modules, then do the lab.
+**Prerequisites:** Complete **[Lesson 2.1: Server Orchestration & Request/Response Lifecycle](01-server-lifecycle.md)** (and review **[Prerequisite 1](/web-systems/chapter-2/first-program)** and **[Prerequisite 2](/web-systems/chapter-2/http-requests-responses)**). Read this as a sequence: understand the contract first, follow one request through the architectural modules, then do the lab.
 
 ## 1. Start with the client's question
 

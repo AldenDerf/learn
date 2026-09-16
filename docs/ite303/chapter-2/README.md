@@ -1,27 +1,28 @@
-# Chapter 2 draft teaching pack
+# Chapter 2 teaching pack
 
 **ITE 303: Web Systems and Technologies 2**
 
 **Chapter: Scalable REST API Architecture with Express.js**
 
-**Status: Student handouts published in the local application.**
+**Status: The approved Chapter 2.1 sequence is finalized for classroom use in the local application.**
 
 ## Read in order
 
-For the beginner teaching sequence under topic 2.1, follow:
+1. [P.1 First Node.js & TypeScript](00a-first-nodejs-typescript.mdx)
+2. [P.2 HTTP Requests & Responses](00b-http-requests-responses.mdx)
+3. [2.1.1 Your First Express Server](01a-first-express-server.mdx)
+4. [2.1.2 Understanding the Request/Response Lifecycle](01b-request-response-lifecycle.mdx)
+5. [2.1.3 Middleware & Building a Complete Express Server](01c-middleware-complete-server.mdx)
+6. [Lab 2.1 Basic Typed Express Server with Dynamic Routing](lab-2-1.mdx)
 
-- [2.1.1 Your First Express Server](01a-first-express-server.md)
-- [2.1.2 Understanding the Request/Response Lifecycle](01b-request-response-lifecycle.md)
-- [2.1.3 Middleware & Building a Complete Express Server](01c-middleware-complete-server.md)
+These six canonical `.mdx` files are imported by thin `page.mdx` wrappers under `app/web-systems/chapter-2`. Edit the canonical file, not a duplicate in the route. The existing Nextra configuration and public URLs are unchanged.
 
-The instructor approved 2.1.1 and 2.1.2 and requested 2.1.3 as the final instructional sublesson before Lab 2.1. The older combined lesson below is preserved as source/reference material; its cleanup and Lab 2.1 are separate tasks.
+## Supporting references
 
-1. [Prerequisite 1: Running Your First Node.js + TypeScript Program](00a-first-nodejs-typescript.md)
-2. [Prerequisite 2: Understanding HTTP Requests & Responses](00b-http-requests-responses.md)
-3. [2.1 Server Orchestration & Request/Response Lifecycle](01-server-lifecycle.md)
-4. [2.2 REST Constraints & Architectural Concerns](02-rest-constraints.md)
-5. [Instructor guide and alignment](instructor-guide.md)
-6. [Verification notes](verification.md)
+- [Legacy combined 2.1 handout](01-server-lifecycle.md): preserved for reference and hidden from normal student navigation.
+- [Existing 2.2 handout](02-rest-constraints.md): outside this finalization; only prerequisite link targets were maintained after the migration.
+- [Instructor guide and alignment](instructor-guide.md)
+- [Verification notes](verification.md)
 
 These are newly authored lessons, not recovered original handouts. The existing Foundation handouts remain unchanged. Examples use a separate Express laboratory project, not the Next.js learning platform.
 
@@ -39,4 +40,4 @@ The overview on page 4 places Chapter 2 in Weeks 4-6; the detailed learning plan
 
 The required practical work is a typed dynamic Express route and separation of routes from handlers/controllers. Services and repositories are explained as a growth path. PostgreSQL provisioning belongs to Chapter 3; Prisma belongs to Chapter 4; full authentication belongs to Chapter 5.
 
-The full drafts support reading before/after class. The instructor guide suggests what to prioritize during one lecture and lab; its timing and rubric are proposals, not additional syllabus requirements.
+The materials support reading before/after class. The instructor guide's broader Chapter 2 timing and rubric remain proposals, not additional syllabus requirements. Use the approved Lab 2.1 handout for its specific submission requirements and rubric.
