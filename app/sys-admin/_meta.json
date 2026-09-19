@@ -1,20 +1,4 @@
 {
-  "index": "Overview & Syllabus",
-  "--- basics": {
-    "type": "separator",
-    "title": "SysAdmin Fundamentals"
-  },
-  "module-1-intro": "1. Introduction to SysAdmin",
-  "module-2-linux-basics": "2. Linux CLI & File System",
-  "--- administration": {
-    "type": "separator",
-    "title": "Server Administration"
-  },
-  "module-3-users-permissions": "3. Users & File Permissions",
-  "module-4-networking-services": "4. Networking & SSH Remote Access",
-  "--- labs": {
-    "type": "separator",
-    "title": "Laboratory Activities"
-  },
-  "lab-1": "Lab 1: Linux CLI Setup"
+  "index": "Overview & Approved Syllabus",
+  "module-2": "Module 2: Core Networking & Infrastructure Services"
 }

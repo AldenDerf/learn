@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 // Optional first argument overrides the local base URL.
 const baseUrl = process.argv[2] ?? 'http://localhost:3100';
 const blockedRoutes = [
-  '/sys-admin',
   '/sys-admin/lab-1',
   '/sys-admin/module-1-intro',
   '/sys-admin/module-2-linux-basics',
@@ -13,6 +12,14 @@ const blockedRoutes = [
 ];
 const availableRoutes = [
   '/',
+  '/sys-admin',
+  '/sys-admin/module-2',
+  ...[
+    'local-networking',
+    'lab-2-1',
+    'dynamic-ip-addressing',
+    'name-resolution',
+  ].map(slug => `/sys-admin/module-2/${slug}`),
   '/web-systems',
   '/web-systems/chapter-2',
   ...[
@@ -35,9 +42,20 @@ for (const route of availableRoutes) {
   const response = await fetch(new URL(route, baseUrl), { redirect: 'manual' });
   assert.equal(response.status, 200, `${route} must remain available`);
   const html = await response.text();
-  assert.doesNotMatch(html, /href=["']\/sys-admin(?:[\/"'#?])/, `${route} exposes a course link`);
-  if (route === '/') {
-    assert.doesNotMatch(html, /System Administration|ITM 402/, 'Homepage exposes the hidden course');
+  assert.match(html, /href=["']\/sys-admin(?:[\/"'#?])/, `${route} must expose course navigation`);
+  for (const oldRoute of blockedRoutes) {
+    assert.ok(!html.includes(`href="${oldRoute}"`), `${route} links to removed lesson ${oldRoute}`);
   }
-  console.log(`PASS 200, no System Administration links: ${route}`);
+  if (route === '/') {
+    assert.match(html, /ITM 402/, 'Homepage must expose the reopened course');
+  }
+  if (route.startsWith('/sys-admin')) {
+    assert.match(html, /draft for instructor review/i, `${route} must identify draft material`);
+    const sidebar = html.match(/<aside\b[\s\S]*?<\/aside>/)?.[0];
+    assert.ok(sidebar, `${route} must retain the course sidebar`);
+    for (const slug of ['local-networking', 'lab-2-1', 'dynamic-ip-addressing', 'name-resolution']) {
+      assert.ok(sidebar.includes(`/sys-admin/module-2/${slug}`), `${route} sidebar omits ${slug}`);
+    }
+  }
+  console.log(`PASS 200 and course navigation: ${route}`);
 }

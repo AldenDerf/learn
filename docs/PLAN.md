@@ -5,7 +5,7 @@
 One instructor-managed platform for multiple subjects. Initial subjects:
 
 - ITE 303 - Web Systems & Technologies 2 (current priority).
-- ITM 402 - System Administration and Maintenance (preserve existing materials).
+- ITM 402 - System Administration and Maintenance (approved Module 2 drafts; sample replacement authorized).
 
 Future hierarchy: subject -> chapters -> lessons, with subject enrollment and per-student lesson progress.
 
@@ -57,11 +57,15 @@ Keep existing full Foundation handouts intact. The application may use PostgreSQ
 - The instructor subsequently authorized new drafts and provided the syllabus. Draft pack: `docs/ite303/chapter-2/README.md`. Sample projects compiled and 23 local HTTP cases passed; student exercise solutions, platform integration, and publication remain pending. See the pack's verification notes.
 - Existing public site: https://ite-303-docs.aldenderf.com (availability was not verified in the initial review).
 
-## Temporary System Administration availability
+## ITM 402 Module 2: current draft review
 
-System Administration is temporarily unavailable to students. `SYSTEM_ADMIN_AVAILABLE` in `lib/course-availability.ts` controls the homepage card, Web Systems navbar link, and the `/sys-admin` layout's `notFound()` guard (including child routes). The root `app/_meta.json` entry is also hidden. All course sources and metadata are retained.
-
-To reopen the course, set the flag to `true` and remove `display: "hidden"` from its root metadata entry, then rebuild and verify navigation and direct routes. ITE 303 remains available; this release gate does not implement authentication.
+- Instructor authorized removal of the five former System Admin sample lesson pages and their outdated navigation. They were not the approved syllabus.
+- Course overview now lists all five approved module titles. Modules 1 and 3–5 are explicitly unavailable; only Module 2 has lesson routes.
+- Module 2 contains 2.1 Local Networking & Subnetting, Lab 2.1 Static IP & Host–VM Connectivity, 2.2 Dynamic IP Addressing, and 2.3 Name Resolution. All are newly authored drafts requiring instructor review.
+- Local navigation is reopened using `SYSTEM_ADMIN_AVAILABLE` and root metadata so the drafts can be reviewed through normal routes. The flag affects the existing homepage card and Web Systems course-switch link without editing Web Systems sources; it is not authentication. No push, deployment, or merge is authorized.
+- Assumed lab: Windows host, VirtualBox 7.x, Ubuntu Server 24.04 LTS, separate NAT and Host-Only adapters. Interface names and `192.168.56.0/24` are examples to verify before use. ISC DHCP is included as a legacy syllabus demonstration, not recommended production software; the instructor must approve a compatible isolated image or use the reading exercise.
+- Next: instructor content review, confirm classroom versions, and rehearse the VM configuration/DHCP/DNS exercises before publication. Original ITM 402 handouts remain unresolved; only the supplied syllabus/topic list was available.
+- Verification: lint, TypeScript, production build, and 20 production HTTP/navigation assertions passed. The build needed worker permissions after sandbox `spawn EPERM`. Browser/mobile/keyboard/theme/console checks remain pending because no browser is available; the VM exercises have not been executed. See `docs/itm402/module-2-review.md` for the complete scope and handoff.
 
 ## Later milestones
 

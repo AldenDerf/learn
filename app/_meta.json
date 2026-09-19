@@ -9,7 +9,6 @@
   },
   "sys-admin": {
     "title": "System Admin & Maintenance",
-    "type": "page",
-    "display": "hidden"
+    "type": "page"
   }
 }

@@ -1,0 +1,185 @@
+# 2.3 Name Resolution
+
+**Draft for instructor review · ITM 402 · Module 2**
+
+## DNS connects names and addresses
+
+An IP address identifies a network location. A **hostname** is a human-friendly device name, such as `server`. A fully qualified domain name (**FQDN**) includes the domain, such as `server.lab.test`. **Domain Name System (DNS)** servers answer questions about names and their records, like a directory that associates names with contact details.
+
+Setting a machine's hostname does not automatically create a DNS record. DHCP assigning an address does not automatically create one either; dynamic DNS integration is a separate configuration.
+
+```text
+Client asks: What is the IPv4 address of server.lab.test?
+     -> DNS server at 192.168.56.10
+     <- Answer: 192.168.56.10
+Client can now try to reach that IP using the desired service.
+```
+
+DNS success does not mean that the destination's web server is running. Separate name lookup from service connectivity.
+
+## Forward and reverse lookup
+
+A **forward lookup** asks for an address using a name. A **reverse lookup** asks for a name using an address. They use separate records; adding a forward record does not automatically create a reverse one.
+
+A **zone** is a portion of the DNS namespace managed as a unit. Our private forward zone is `lab.test`. The `.test` domain is reserved for testing; these records will not appear in public DNS. Our `/24` reverse zone is `56.168.192.in-addr.arpa`, with the address's network octets reversed for DNS's hierarchy.
+
+## Basic record types
+
+| Record | Meaning | Example use |
+| --- | --- | --- |
+| A | Name to IPv4 address | `server.lab.test` → `192.168.56.10` |
+| AAAA | Name to IPv6 address | Used when a host has an IPv6 address |
+| PTR | Address to name in a reverse zone | `.10` → `server.lab.test` |
+| CNAME | Alias to another name | `www.lab.test` → `server.lab.test` |
+| NS | Name server responsible for a zone | `ns.lab.test` |
+| SOA | Zone administration details and version/timing values | Serial number changes when the zone changes |
+| MX | Mail server for a domain, with priority | Used by mail systems; not configured in this lab |
+| TXT | Text information attached to a name | Often used for verification; not configured here |
+
+A **TTL**, or time to live, tells caches how long they may reuse a record. Cached answers can remain after you edit a zone; distinguish stale information from a server that never loaded your change.
+
+## BIND9 in a private lab
+
+**BIND9** is DNS server software; its server process is named `named`. We will serve authoritative answers for our own test zones. **Authoritative** means responsible for those records. **Recursive** resolution means finding answers from other servers for clients. This exercise disables recursion to keep the roles clear.
+
+Use the server from Lab 2.1 at `192.168.56.10/24` and a client on the same Host-Only network. Keep NAT for downloads. Run these only on the disposable Ubuntu lab server:
+
+```bash
+sudo apt update
+sudo apt install bind9 dnsutils
+```
+
+`apt update` refreshes package metadata; `apt install` installs BIND9 and DNS query tools. `sudo` allows system changes. The `dnsutils` package provides `dig` and `nslookup`; install it on an Ubuntu test client too if needed.
+
+### 1. Back up and set listening boundaries
+
+```bash
+sudo cp /etc/bind/named.conf.options /etc/bind/named.conf.options.lab23-backup
+sudo cp /etc/bind/named.conf.local /etc/bind/named.conf.local.lab23-backup
+sudo nano /etc/bind/named.conf.options
+```
+
+`cp` preserves the original files; choose fresh backup names if necessary. `nano` opens the options file. On this dedicated lab server, edit its existing `options` block rather than adding a second one:
+
+```text
+options {
+    directory "/var/cache/bind";
+    listen-on { 127.0.0.1; 192.168.56.10; };
+    listen-on-v6 { none; };
+    allow-query { localhost; 192.168.56.0/24; };
+    recursion no;
+    allow-transfer { none; };
+};
+```
+
+`directory` sets BIND's working directory. `listen-on` limits IPv4 listening to loopback and the lab IP; `listen-on-v6` disables IPv6 listening for this IPv4 exercise. `allow-query` permits local and lab clients. `recursion no` avoids offering recursive lookups; Internet name queries to this server are not expected to succeed. `allow-transfer` disables copying whole zones to other servers. Braces group values and semicolons terminate them. Reconcile existing options with the instructor before replacing a non-lab configuration.
+
+### 2. Declare forward and reverse zones
+
+Open the local zone declarations with `sudo nano /etc/bind/named.conf.local`. Add the following once, preserving any other instructor-managed zones:
+
+```text
+zone "lab.test" {
+    type master;
+    file "/etc/bind/db.lab.test";
+};
+zone "56.168.192.in-addr.arpa" {
+    type master;
+    file "/etc/bind/db.192.168.56";
+};
+```
+
+`zone` names the managed namespace. `type master` is BIND's accepted term for a primary zone loaded from a local file. `file` identifies where its records live. Change both zone and file contents consistently if using another subnet.
+
+### 3. Write the records
+
+Open a new forward file with `sudo nano /etc/bind/db.lab.test`. If it already exists, back it up first. Enter:
+
+```text
+$TTL 300
+@ IN SOA ns.lab.test. admin.lab.test. (
+    1     ; serial
+    3600  ; refresh
+    600   ; retry
+    86400 ; expire
+    300   ; negative cache TTL
+)
+@      IN NS    ns.lab.test.
+ns     IN A     192.168.56.10
+server IN A     192.168.56.10
+www    IN CNAME server.lab.test.
+```
+
+`$TTL 300` sets a five-minute default cache lifetime. `@` means this zone's origin (`lab.test`). `IN` is the Internet record class. The SOA names the primary server and administrator contact (`admin.lab.test.` represents `admin@lab.test`). Increment the serial when changing the zone. Refresh, retry, and expire guide secondary servers; the final value governs negative caching with the SOA TTL. Parentheses continue the record across lines; semicolons introduce comments in a zone file.
+
+The NS record identifies `ns.lab.test`; its A record supplies the IP. `server` maps to the same server, and `www` aliases it. A trailing dot marks a complete domain name; omitting it from `server.lab.test.` would append the zone name again.
+
+Open `sudo nano /etc/bind/db.192.168.56` and enter the reverse zone:
+
+```text
+$TTL 300
+@ IN SOA ns.lab.test. admin.lab.test. (
+    1
+    3600
+    600
+    86400
+    300
+)
+@  IN NS  ns.lab.test.
+10 IN PTR server.lab.test.
+```
+
+The SOA has the same field order as above. Here `10` expands to `10.56.168.192.in-addr.arpa`, the reverse name for `192.168.56.10`. The PTR supplies the FQDN. These two files deliberately show that forward and reverse data are maintained separately.
+
+### 4. Validate before restarting
+
+```bash
+sudo named-checkconf
+sudo named-checkzone lab.test /etc/bind/db.lab.test
+sudo named-checkzone 56.168.192.in-addr.arpa /etc/bind/db.192.168.56
+sudo systemctl restart named
+sudo systemctl status named --no-pager
+```
+
+`named-checkconf` validates the main configuration and included declarations. `named-checkzone` checks each zone's syntax and consistency; its arguments are the zone name and file path. Look for successful validation/`OK` before restarting. `systemctl restart named` reloads the service by restarting it; `status` shows its state. Ubuntu commonly also provides the `bind9` service alias; use the unit supplied by the class image. Syntax success alone does not test remote queries.
+
+## Guided queries: ask one server explicitly
+
+From a client on the Host-Only subnet:
+
+```bash
+dig @192.168.56.10 server.lab.test A
+dig @192.168.56.10 -x 192.168.56.10
+nslookup server.lab.test 192.168.56.10
+```
+
+`dig` is a DNS query tool. `@192.168.56.10` selects the server to ask, the next name is the question, and `A` requests IPv4 records. Look for `status: NOERROR`, the requested A answer, the `aa` authoritative flag, and the `SERVER` line. `-x` builds a reverse lookup for the given IP; expect a PTR answer naming `server.lab.test.`.
+
+`nslookup` is another query tool, also available on Windows. Its first argument is the name and second is the DNS server. Check both the responding server and the returned address. Do not mistake the DNS server's address at the top for the answer.
+
+**Practice:** query `www.lab.test` using `dig @192.168.56.10 www.lab.test A`. Explain the CNAME and A response. Then query a name you never created: `dig @192.168.56.10 missing.lab.test A`. An `NXDOMAIN` result means the name does not exist in the zone; a timeout means no response arrived. Those require different investigations.
+
+These explicit-server tests do not change the operating system's normal resolver. If DHCP later advertises this DNS server, clients must renew their settings. Our authoritative-only server handles the lab zones, not general Internet resolution; system-wide resolver integration is a separate instructor-led step.
+
+## Troubleshoot name resolution
+
+1. Verify the server IP and local path using Lab 2.1. A failed ping may reflect ICMP policy; test DNS directly too.
+2. Confirm the query names the intended server, spelling, and record type.
+3. If it times out, inspect the service, listening address, and firewall. DNS needs UDP and TCP port 53; keep permissions scoped to the lab subnet.
+4. For `REFUSED`, inspect `allow-query`, the requested zone, and recursion policy. External recursive queries are deliberately unavailable here.
+5. For `NXDOMAIN`, check whether the name exists in the correct zone. `NOERROR` with no requested record can mean the name exists but lacks that record type.
+6. For `SERVFAIL`, inspect validation output and service logs; the server could not complete the answer.
+7. If forward works but reverse fails, check the separate reverse declaration, file, and PTR.
+8. For an old answer, query the authoritative server directly, verify its loaded serial and your edit/restart, then consider client caching and TTL.
+
+To inspect logs, run `sudo journalctl -u named -n 30 --no-pager`: `-u` selects the DNS service, `-n 30` limits output to recent entries, and `--no-pager` prints directly. Read the reported file and line before editing.
+
+For rollback, restore the backed-up options and local declaration files with `sudo cp` as in the earlier lab, validate using `sudo named-checkconf`, and restart the service. The new zone files are unused once their declarations are removed. Restore any client DNS settings changed during instructor-led work.
+
+**Submit:** forward and reverse answers, the responding DNS server, a CNAME explanation, and a comparison of `NXDOMAIN` versus timeout. Explain why a hostname setting alone is not DNS registration and why a successful DNS answer does not prove a working application.
+
+## References
+
+- [Ubuntu: installing and configuring DNS](https://ubuntu.com/server/docs/how-to/networking/install-dns/)
+- [BIND9: configurations and zone files](https://bind9.readthedocs.io/en/stable/chapter3.html)
+- [RFC 2606: reserved testing domains](https://www.rfc-editor.org/rfc/rfc2606)

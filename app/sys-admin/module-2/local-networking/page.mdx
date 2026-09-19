@@ -1,0 +1,106 @@
+# 2.1 Local Networking & Subnetting
+
+**Draft for instructor review · ITM 402 · Module 2**
+
+## A network connects devices
+
+A computer network carries small pieces of data called **packets** between devices. A **host** is a device on a network. In VirtualBox, the Windows **host computer** runs the virtualization software; the Ubuntu **guest VM** is a separate computer simulated by that software. They still need a network connection to communicate.
+
+A **network interface** is a computer's connection to a network, like a doorway. Windows may have Wi-Fi and a VirtualBox Host-Only adapter. Ubuntu may have two virtual Ethernet interfaces. Each doorway can have a different address.
+
+```text
+Windows Host-Only adapter             Ubuntu Host-Only interface
+192.168.56.1/24  <--- virtual switch --->  192.168.56.10/24
+```
+
+A virtual switch connects the devices inside the host computer. No physical Ethernet cable is needed for this link.
+
+## IPv4: an address and a neighborhood
+
+An IPv4 address has four numbers from 0 to 255, such as `192.168.56.10`. Think of the address as a delivery location. The **prefix**, written after `/`, tells the computer which part identifies the network neighborhood.
+
+IPv4 has 32 bits. `/24` means the first 24 bits identify the network and leaves 8 bits for addresses inside it. The equivalent **subnet mask** is `255.255.255.0`. In this particular example:
+
+| Value | Meaning |
+| --- | --- |
+| `192.168.56.0/24` | Network/subnet identifier; do not assign `.0` to a device |
+| `192.168.56.1` through `192.168.56.254` | Usable device addresses; each must be unique |
+| `192.168.56.255` | Broadcast address for the subnet; do not assign it to a device |
+
+**Subnetting** divides an address space into smaller networks. Splitting this `/24` into two `/25` networks gives `192.168.56.0/25` and `192.168.56.128/25`, with 126 ordinary host addresses each. Under `/25`, `.10` and `.130` are in different subnets even though their first three numbers match. Always read the prefix too.
+
+**Try it:** with `/24` on both devices, are `.1` and `.10` neighbors? Yes. Is `192.168.57.10/24` in that same subnet? No. Predict these answers before configuring anything.
+
+## Routes and gateways
+
+A **route** tells the operating system where to send packets. For a directly connected subnet, it uses that interface. For another network, it normally sends traffic to a **gateway**, a router that forwards packets. A **default route** is the fallback when no more specific route matches.
+
+The Windows Host-Only address `.1` is not automatically a router. Our lab does not configure routing on Windows, so Ubuntu's Host-Only interface needs no default gateway. Internet access, if needed, uses the separate NAT interface.
+
+## Static and dynamic addresses
+
+A **static IP** is entered by an administrator and stays as configured. Servers benefit from a predictable address. A **dynamic IP** is supplied by a DHCP server for a limited lease period; laptops can join without manually entering every setting. Both methods still need correct subnet settings and unique addresses.
+
+## VirtualBox NAT and Host-Only
+
+| Mode | What it provides | Use in this module |
+| --- | --- | --- |
+| NAT | Guest can initiate connections outward through VirtualBox; unsolicited inbound host connections need additional setup such as port forwarding | Adapter 1 for downloads |
+| Host-Only | Host and attached VMs share a private virtual network; no Internet routing by default | Adapter 2 for direct Host–VM communication |
+
+Do not substitute Bridged mode: it places the VM on the physical network. In VirtualBox's network settings, select the same Host-Only network for all lab participants on your computer. The built-in VirtualBox DHCP server can assign addresses there; disable it for our controlled lab network before using the later classroom DHCP server.
+
+## Inspect Ubuntu before changing it
+
+Run these in the Ubuntu console. These inspection commands do not require `sudo`.
+
+```bash
+ip addr
+ip route
+hostname -I
+ping -c 4 192.168.56.1
+```
+
+- `ip` is Linux's network inspection/configuration tool. `addr` means addresses. Look for interface names, `inet` IPv4 entries, prefixes, and `UP`/`LOWER_UP` flags. `lo` is loopback: a computer talking to itself. Do not configure it for the lab. Administrators use this output to confirm which interface owns an address.
+- `ip route` lists routes. Look for `default via ...` on the NAT interface and, after setup, `192.168.56.0/24 dev ...` on the Host-Only interface. `dev` identifies the device/interface used.
+- `hostname -I` prints assigned addresses (capital `I`), often more than one. It is a quick summary but does not show which interface owns each address; compare it with `ip addr`.
+- `ping` sends ICMP Echo requests to test reachability. `-c 4` stops after four requests on Ubuntu. Here the destination is the Windows Host-Only IP. Replies show round-trip time; loss means replies did not return. A firewall can block ping even when addressing is correct. Success does not prove that DNS or a web service works.
+
+**Guided inspection:** write down each interface and IPv4 prefix. Match the Host-Only interface's `link/ether` MAC address (its adapter identifier) with Adapter 2's MAC in VirtualBox. Do not guess from the interface number. Predict which route will carry a packet to `.1`.
+
+## Netplan turns a plan into network settings
+
+Ubuntu Server uses **Netplan** to describe network settings in YAML files under `/etc/netplan/`. Netplan passes that description to a network service, commonly `systemd-networkd` on Ubuntu Server.
+
+**YAML** is structured text made of keys and values. Indentation shows which settings belong together. Use spaces, not tabs; keep siblings aligned. `addresses` below is a list. `version: 2` is the Netplan configuration format, not an Ubuntu version.
+
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s8:
+      dhcp4: false
+      addresses:
+        - 192.168.56.10/24
+```
+
+Read it aloud: under `network`, describe Ethernet interface `enp0s8`, turn off DHCP for IPv4, and assign `.10/24`. Replace the interface name with your observed one. `renderer` selects the service applying the settings. There is no Host-Only gateway or DNS server here because this link is only for local communication by IP. Preserve the existing NAT interface configuration.
+
+This is an example stanza, not permission to overwrite every existing file. Multiple Netplan files merge; an older definition of the same interface may conflict. [Lab 2.1](/sys-admin/module-2/lab-2-1) walks through inspection, backup, editing, validation, and recovery.
+
+## Troubleshoot in layers
+
+1. Link: VM running, correct adapter attached, and virtual cable connected?
+2. Address: correct interface, unique IP, matching subnet and prefix?
+3. Route: local subnet route present? Avoid adding a gateway to fix a local-link problem.
+4. Policy: do host or guest firewall rules block ICMP?
+5. Service: if ping succeeds but a name fails, continue to DNS in 2.3.
+
+**Check your understanding:** explain why two interfaces may have different IPs, why `.1` is not our gateway, and why memorizing `enp0s8` can break another student's VM.
+
+## References
+
+- [Ubuntu: configuring networks](https://ubuntu.com/server/docs/explanation/networking/configuring-networks/)
+- [Oracle VirtualBox: virtual networking](https://www.virtualbox.org/manual/ch06.html)
+- [Netplan configuration reference](https://netplan.readthedocs.io/en/stable/netplan-yaml/)

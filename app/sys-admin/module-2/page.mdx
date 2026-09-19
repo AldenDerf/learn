@@ -1,0 +1,31 @@
+# Module 2: Core Networking & Infrastructure Services
+
+**Draft for instructor review · ITM 402**
+
+A server needs an address before another computer can reach it. DHCP can assign addresses automatically. DNS lets people use names instead of remembering addresses. This module connects those three ideas.
+
+## Learning outcomes and sequence
+
+1. [2.1 Local Networking & Subnetting](/sys-admin/module-2/local-networking): read IPv4 addresses and prefixes; explain interfaces, routes, VirtualBox modes, and Netplan.
+2. [Lab 2.1](/sys-admin/module-2/lab-2-1): assign a static address and explain two-way Host–VM communication.
+3. [2.2 Dynamic IP Addressing](/sys-admin/module-2/dynamic-ip-addressing): trace DORA and explain pools, leases, and reservations.
+4. [2.3 Name Resolution](/sys-admin/module-2/name-resolution): explain DNS records and diagnose forward and reverse queries.
+
+## Lab environment and address plan
+
+Assume a Windows host, VirtualBox 7.x, and an installed Ubuntu Server 24.04 LTS VM with a local console and an account allowed to use `sudo`. `sudo` runs a command with administrator privileges. The instructor must confirm versions and available packages before class. No WSL environment is assumed.
+
+| Device or purpose | Example address |
+| --- | --- |
+| Windows Host-Only adapter | `192.168.56.1/24` |
+| Ubuntu server Host-Only interface | `192.168.56.10/24` |
+| Later DHCP client pool | `192.168.56.100`–`192.168.56.150` |
+| Later reserved client | `192.168.56.20` |
+
+These are example coordinates. Check that the subnet does not overlap your LAN or VPN and that each address is unused. If the instructor assigns another subnet, update all examples consistently. `enp0s8` is an example interface name, not a value to memorize.
+
+Keep Adapter 1 on NAT for downloads and Adapter 2 on Host-Only for the lab. Do not bridge the lab DHCP server onto a school or home network. The Host-Only network has no Internet gateway in this exercise.
+
+## Source and review status
+
+The approved module titles and topic scope come from the instructor's request. Lessons are new drafts; original ITM 402 handouts were not supplied. Technical references appear in each lesson. ISC DHCP remains in the syllabus example with its legacy status identified; see [Ubuntu's DHCP status guidance](https://ubuntu.com/server/docs/explanation/networking/about-dhcp/).
