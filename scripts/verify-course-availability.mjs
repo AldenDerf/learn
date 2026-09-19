@@ -64,8 +64,13 @@ for (const route of availableRoutes) {
   if (route === '/') {
     assert.match(html, /ITM 402/, 'Homepage must expose the reopened course');
   }
-  if (route.startsWith('/sys-admin')) {
+  if (['/sys-admin', '/sys-admin/module-2', '/sys-admin/module-2/dynamic-ip-addressing', '/sys-admin/module-2/name-resolution'].includes(route)) {
     assert.match(html, /draft for instructor review/i, `${route} must identify draft material`);
+  }
+  if (['/sys-admin/module-2/local-networking', '/sys-admin/module-2/lab-2-1'].includes(route)) {
+    assert.doesNotMatch(html, /draft for instructor review/i, `${route} must not retain draft label`);
+  }
+  if (route.startsWith('/sys-admin')) {
     const sidebars = [...html.matchAll(/<aside\b[\s\S]*?<\/aside>/g)].map(match => match[0]);
     for (const kind of ['nextra-sidebar', 'nextra-mobile-nav']) {
       const sidebar = sidebars.find(aside => aside.includes(kind));
