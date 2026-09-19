@@ -66,3 +66,13 @@ Deleted:
 ## Next step
 
 Instructor reviews the drafts and confirms classroom versions, then rehearses Lab 2.1 and the DHCP/DNS demonstrations. Complete browser/mobile/keyboard checks before removing draft labels. No push, deployment, or merge is included in this task.
+
+## Student-access activation follow-up
+
+The instructor subsequently explicitly authorized student access. The existing enabled flag and visible root metadata already satisfy activation; the layout's conditional `notFound()` guard is preserved for future disabling. Updated the availability comment and plan to record this authorization. Draft labels remain a separate content-review status.
+
+A production link crawl found an existing relative Chapter 2 URL on the Web Systems overview resolving to `/chapter-2` (404). Corrected only that URL in `app/web-systems/page.mdx` to `/web-systems/chapter-2`, preserving all teaching text. This is the only Web Systems change in the follow-up; the original Module 2 commit did not change that directory.
+
+Rebuilt production output and checked the homepage card, course navigation, all direct Module 2 pages, and Web Systems routes. The Home → System Administration → Module 2 → lessons/lab chain and internal link destinations are checked through rendered HTML and HTTP responses. No browser is connected, so interactive browser/mobile verification remains pending. Nothing was pushed, deployed, or merged.
+
+Results: production build (including lint/type validation) passed; all 20 route checks passed, and all 15 unique internal URL targets found across the homepage, six System Admin pages, and Web Systems overview responded successfully. An intermediate incremental build produced a runtime bundle error on removed routes; after stopping the test servers, clearing only generated `.next` output, and rebuilding, those routes correctly returned 404. No source workaround was needed.
