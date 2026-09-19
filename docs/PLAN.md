@@ -68,6 +68,15 @@ Keep existing full Foundation handouts intact. The application may use PostgreSQ
 - Verification: lint, TypeScript, production build, and 20 production HTTP/navigation assertions passed. The build needed worker permissions after sandbox `spawn EPERM`. Browser/mobile/keyboard/theme/console checks remain pending because no browser is available; the VM exercises have not been executed. See `docs/itm402/module-2-review.md` for the complete scope and handoff.
 - Student-access activation follow-up: confirmed the preserved layout guard, visible homepage card, course-switch link, and direct Module 2 routes. Corrected the existing Web Systems overview Chapter 2 URL from `./chapter-2` (which resolved to the missing `/chapter-2`) to `/web-systems/chapter-2`; its teaching text is unchanged.
 
+### Module 2 beginner-reading revision — awaiting instructor review
+
+- Reorganized the existing material around simple concepts, small examples, command purpose/output, guided practice, and troubleshooting. Lab 2.1 now presents the instructor's exact nine-step workflow with expected results and failure checks.
+- Kept subnet calculations, route/firewall diagnostics, Netplan trial/recovery, generated-file caveats, DHCP protocol details, and complete ISC DHCP/BIND9 examples in clearly labeled deeper or instructor-led sections. Backups and validation remain beside the edits they protect.
+- Replaced the two System Admin `_meta.json` files with `_meta.ts`; installed Nextra 4 discovers only JS/TS metadata. This fixes the previously alphabetical sidebar and Previous/Next order. Labels are now short; page H1s retain official syllabus titles.
+- Simplified the course landing page around “Start Module 2,” with the complete syllabus in an expandable outline. Corrected System Admin repository links to `AldenDerf/learn` on this branch. Web Systems source/navigation is unchanged in this revision.
+- Verified lint, TypeScript, production build, 20 route checks, rendered desktop/mobile sidebar labels/order/active styling, Previous/Next order, and 118 internal route/fragment targets. Lab 2.1 was further streamlined with structured UI step-by-steps, before/after Netplan YAML blocks, and PowerShell/Ubuntu console indicators. Actual browser interaction, mobile layout, keyboard/theme checks, and VM execution remain unverified because the browser and classroom topology are unavailable.
+- Student access remains enabled with the release mechanism preserved. Keep draft labels until content review. Per the instructor's current request, leave this revision uncommitted; do not push, deploy, or merge. Next: instructor review and classroom/browser rehearsal. See `docs/itm402/module-2-review.md` for details.
+
 ## Later milestones
 
 1. Establish authentication, instructor/student roles, subject enrollment, PostgreSQL, and Prisma migrations.

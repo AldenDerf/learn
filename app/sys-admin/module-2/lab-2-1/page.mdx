@@ -2,83 +2,219 @@
 
 **Draft for instructor review · ITM 402 · Module 2**
 
-**Task:** Assign static IP coordinates on the server node and verify Host–VM connectivity. Work through [2.1 Local Networking & Subnetting](/sys-admin/module-2/local-networking) first.
+## Goal
 
-## Goal and preparation
+**Make your Windows computer and your Ubuntu Server VM communicate with each other.**
 
-By the end, explain what you configured, why you configured it, how you verified it, and what you checked when a test failed. Two successful pings alone are not a complete submission.
+In this lab, you will assign a permanent (**static**) IP address to your Ubuntu Server VM. Then, you will test that both computers can talk to each other across a private virtual network.
 
-Use an installed Ubuntu Server VM, a Windows host, VirtualBox, and the VM's local console. Have an instructor-approved snapshot before network changes; a snapshot is a saved VM state you can restore. Use the console rather than a remote session that could disconnect. Record your Ubuntu and VirtualBox versions.
+Make sure you have read [2.1 Local Networking & Subnetting](/sys-admin/module-2/local-networking) before starting.
 
 ```text
-Windows host: 192.168.56.1/24
-             |
-    VirtualBox Host-Only network
-             |
-Ubuntu VM:   192.168.56.10/24
-
-Optional separate path: Ubuntu NAT adapter -> Internet
++-----------------------------------+             +-----------------------------------+
+|           Windows Host            |             |         Ubuntu Server VM          |
+|      (Your Physical Computer)     |             |      (Virtual Machine Console)    |
+|                                   |             |                                   |
+|   VirtualBox Host-Only Adapter    |  Host-Only  |       Host-Only Interface         |
+|         192.168.56.1/24           |<===========>|        192.168.56.10/24           |
++-----------------------------------+   Network   +-----------------------------------+
+                                                                    |
+                                                                    | NAT (Adapter 1)
+                                                                    v
+                                                            Internet Downloads
 ```
 
-The examples assume this subnet is unused by your LAN/VPN. If it overlaps, ask the instructor to assign another subnet and change all addresses consistently. A silent ping does not prove an address is unused; inspect the lab address plan and existing assignments.
+### Two connections at a glance
 
-## 1. Inspect the current configuration
+| Connection | VirtualBox Name | What it is used for in this lab |
+| --- | --- | --- |
+| **Host-Only** | Adapter 2 | Private line between Windows and Ubuntu for lab communication |
+| **NAT** | Adapter 1 | Allows Ubuntu to download packages from the Internet |
 
-In Ubuntu, run:
+By the end of this lab, you will understand:
+- **What** you configured on both machines.
+- **Why** the server needs a static IP address.
+- **How** to verify the connection using `ip addr` and `ping`.
+- **Where** to look when communication fails.
+
+---
+
+## Before you start
+
+1. **Work inside the VM window (the local console):** Do not configure network settings over SSH yet. If you make a mistake in your network file, an SSH session will disconnect and lock you out. The VM window will always stay connected.
+2. **Take a VM snapshot:** In VirtualBox, take a snapshot of your VM before editing any files (e.g., name it `Before-Lab-2.1`). If anything goes wrong, you can restore this snapshot in seconds.
+3. **Keep both firewalls enabled:** Do not turn off Windows Firewall or Ubuntu's firewall completely.
+4. **Remember your actual names:** Interface names like `enp0s8` and filenames like `00-installer-config.yaml` are examples. Always use the actual names you find on your machine.
+
+---
+
+## Your nine-step path
+
+Follow these steps in order:
+
+1. [Step 1: Check the current network configuration](#step-1--check-the-current-network-configuration)
+2. [Step 2: Configure or verify VirtualBox Host-Only networking](#step-2--configure-or-verify-virtualbox-host-only-networking)
+3. [Step 3: Find the Ubuntu Host-Only interface](#step-3--find-the-ubuntu-host-only-interface)
+4. [Step 4: Configure the static IP using Netplan](#step-4--configure-the-static-ip-using-netplan)
+5. [Step 5: Validate and apply the configuration](#step-5--validate-and-apply-the-configuration)
+6. [Step 6: Check the Ubuntu IP address](#step-6--check-the-ubuntu-ip-address)
+7. [Step 7: Ping Ubuntu from Windows](#step-7--ping-ubuntu-from-windows)
+8. [Step 8: Ping Windows from Ubuntu](#step-8--ping-windows-from-ubuntu)
+9. [Step 9: Troubleshoot if communication does not work](#step-9--troubleshoot-if-communication-does-not-work)
+
+---
+
+## Step 1 — Check the current network configuration
+
+**What we are doing:** Recording the network addresses on both computers before changing anything.
+
+**Why:** We need to know our starting point so we can tell if our changes worked.
+
+### Part A: On Ubuntu Server (VM Console)
+
+Run this command in your Ubuntu terminal:
 
 ```bash
 ip addr
-ip route
-hostname -I
 ```
 
-`ip addr` lists interfaces and their addresses; record `inet` IPv4 values and prefixes. `ip route` shows where packets go; record the default route, if any. `hostname -I` (capital `I`) gives a quick address summary. Keep this output as your **before** evidence. Do not confuse `127.0.0.1` on `lo` with the VM's lab address.
+- **What it does:** Shows all network interfaces and their assigned IP addresses.
+- **What to look for:** Find lines starting with `inet`. You might see `127.0.0.1` under `lo` (this is loopback, the server talking to itself). You might see a `10.0.2.x` address under `enp0s3` (this is the NAT adapter).
+- **Write down:** The interface names you see (for example: `lo`, `enp0s3`).
 
-In Windows PowerShell, run:
+### Part B: On Windows (PowerShell)
+
+Open **PowerShell** on your Windows host computer and run:
 
 ```powershell
 ipconfig
 ```
 
-`ipconfig` displays Windows adapter addresses. Identify the VirtualBox Host-Only adapter separately from Wi-Fi/Ethernet. Record its IPv4 address and subnet mask; it may not exist until the next step.
+- **What it does:** Displays the IP addresses of all network adapters on Windows.
+- **What to look for:** Look for a section named `Ethernet adapter VirtualBox Host-Only Network`. If it is already there, note its IPv4 address (usually `192.168.56.1`).
+- **If you don't see it:** Don't worry. Step 2 will create or enable it.
 
-## 2. Inspect VirtualBox Host-Only networking
+---
 
-Shut down the VM normally before changing its virtual adapters.
+## Step 2 — Configure or verify VirtualBox Host-Only networking
 
-1. Open VirtualBox's **Tools → Network** (called **Host Network Manager** in some versions). Select or create a Host-Only network for this lab.
-2. Inspect the host adapter's IPv4 settings. For this example use `192.168.56.1` with mask `255.255.255.0`. Do not change the Windows Wi-Fi adapter.
-3. Disable VirtualBox's DHCP server for this dedicated lab network. We will assign the server address ourselves, and later study a separate DHCP server.
-4. Open the VM's **Settings → Network**. Keep Adapter 1 as NAT if you need downloads. Enable Adapter 2, choose **Host-Only Adapter**, and select the network from step 1. Ensure **Cable Connected** is checked.
-5. Record Adapter 2's MAC address under its advanced settings. Boot Ubuntu and run `ip addr` again. Match that MAC to the `link/ether` value; VirtualBox may display the same hexadecimal digits without colons. This identifies the interface to configure.
-6. Run `ipconfig` on Windows again to verify the actual host address.
+**What we are doing:** Setting up a dedicated virtual network switch inside VirtualBox so Windows and Ubuntu can connect.
 
-The remaining example uses `enp0s8`. Substitute the name you identified. If you cannot match the adapter, stop and resolve that before editing.
+**Why:** Devices cannot communicate if they are plugged into different networks.
 
-## 3. Inspect and back up Netplan
+### Action steps
 
+1. **Shut down your Ubuntu VM** cleanly:
+   ```bash
+   sudo poweroff
+   ```
+2. **Open VirtualBox Manager** on Windows.
+3. **Open the Network Manager:**
+   - In VirtualBox 7, click the **Tools** menu icon (next to the machine list) and select **Network**. (In older versions, go to **File → Host Network Manager**).
+4. **Check the Host-Only network:**
+   - Look for `VirtualBox Host-Only Ethernet Adapter`. If none exists, click **Create**.
+   - Under the **Adapter** tab:
+     - **IPv4 Address:** `192.168.56.1`
+     - **IPv4 Network Mask:** `255.255.255.0` (this means `/24`).
+   - Under the **DHCP Server** tab:
+     - Make sure **Enable Server** is **UNCHECKED (Disabled)** for this lab network. We will set our IP addresses manually.
+5. **Attach the adapter to your Ubuntu VM:**
+   - Click on your Ubuntu VM, then click **Settings → Network**.
+   - **Adapter 1:** Keep attached to **NAT** with **Cable Connected** checked. (This gives Ubuntu Internet access to download packages).
+   - **Adapter 2:**
+     - Check **Enable Network Adapter**.
+     - Attached to: select **Host-Only Adapter**.
+     - Name: select `VirtualBox Host-Only Ethernet Adapter` (the one with `192.168.56.1`).
+     - Click **Advanced** and make sure **Cable Connected** is checked.
+     - **Note down the MAC Address** shown here (e.g., `080027123456`). You will need it in Step 3.
+6. Click **OK** to save settings, then **Start your Ubuntu VM**.
+
+**What should happen:** Windows has a virtual adapter at `192.168.56.1`, and Ubuntu has a second virtual network card attached to the exact same virtual network.
+
+**If it fails:** Make sure you chose **Host-Only Adapter**, NOT "Bridged Adapter" or "Internal Network".
+
+---
+
+## Step 3 — Find the Ubuntu Host-Only interface
+
+**What we are doing:** Finding out what Ubuntu calls the second adapter you just enabled.
+
+**Why:** If we configure the wrong interface, we might break Internet access or configure nothing at all.
+
+### Action steps
+
+1. In VirtualBox, remember the **Adapter 2 MAC Address** you saw in Step 2 (for example, `080027123456`).
+2. Log in to Ubuntu and run:
+   ```bash
+   ip addr
+   ```
+3. Look at each interface for the line starting with `link/ether`:
+   ```text
+   3: enp0s8: <BROADCAST,MULTICAST> ...
+       link/ether 08:00:27:12:34:56 brd ff:ff:ff:ff:ff:ff
+   ```
+4. Match the numbers! Notice how VirtualBox wrote `080027123456` and Linux writes `08:00:27:12:34:56`. They are the exact same physical ID (MAC address).
+5. The interface name right above the matching MAC address is your Host-Only interface (in this example: `enp0s8`).
+
+> [!NOTE]
+> **Do not guess!** Your interface might be named `enp0s8`, `enp0s9`, or `eth1`. Always match the MAC address to be 100% sure.
+
+---
+
+## Step 4 — Configure the static IP using Netplan
+
+**What we are doing:** Writing our server's static IP address (`192.168.56.10/24`) into Ubuntu's network configuration file.
+
+**Why:** A static IP written in Netplan is permanent. It stays the same every time the server boots up.
+
+### Golden rules of Netplan YAML
+
+Netplan configuration files use a format called **YAML**. YAML has strict rules:
+1. **Never press the Tab key.** Always use the Space bar for indentation.
+2. **Indentation shows hierarchy:** Use exactly 2 spaces per indentation level.
+3. **Preserve existing settings:** Do not delete your NAT interface (`enp0s3`), or your server will lose Internet access.
+
+### 4.1 Find your Netplan file
+
+Run:
 ```bash
 ls /etc/netplan
-sudo netplan get
 ```
 
-`ls` lists file names in Netplan's configuration directory. `sudo netplan get` shows the merged configuration; `sudo` grants administrator privileges for reading protected configuration. Identify the file defining the Host-Only interface. If there are several definitions or a file says it is generated by cloud-init, have the instructor resolve ownership before continuing; generated settings can be replaced on reboot.
+Look for a file ending in `.yaml` (for example, `00-installer-config.yaml` or `50-cloud-init.yaml`). Write down its exact name.
 
-The following examples assume the discovered file is `/etc/netplan/50-cloud-init.yaml`. Use your actual file name throughout, even if it differs.
+### 4.2 Make a safety backup
+
+Before editing any system configuration file, always create a backup copy:
 
 ```bash
-sudo cp /etc/netplan/50-cloud-init.yaml /etc/netplan/50-cloud-init.yaml.lab21-backup
-sudo nano /etc/netplan/50-cloud-init.yaml
+sudo cp /etc/netplan/00-installer-config.yaml /etc/netplan/00-installer-config.yaml.lab21-backup
+```
+*(Replace `00-installer-config.yaml` with your actual filename).*
+
+If you ever make a mistake, this backup file allows you to restore working settings immediately.
+
+### 4.3 Open the file in the nano editor
+
+```bash
+sudo nano /etc/netplan/00-installer-config.yaml
 ```
 
-`cp` copies the existing file to a backup. The backup does not end in `.yaml`, so Netplan will not read it as configuration. Use a fresh backup name if one already exists so you preserve the original. `nano` opens a terminal text editor. These commands need `sudo` because system configuration is protected. If the Host-Only interface has no definition, the instructor can help create a dedicated `.yaml` file containing only its stanza; record that new file for recovery.
+### 4.4 Understand the change (Before vs After)
 
-## 4. Configure the static address
+Here is what typical Netplan files look like before and after your edit:
 
-Edit the Host-Only interface under the existing `network` → `ethernets` mapping. Preserve the NAT interface and other existing settings. Do not paste a second `network:` block into the file.
+#### BEFORE (Only NAT was configured):
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s3:
+      dhcp4: true
+```
 
-For a VM whose NAT interface is `enp0s3` and Host-Only interface is `enp0s8`, a complete simple configuration looks like this:
-
+#### AFTER (Both NAT and Host-Only are configured):
 ```yaml
 network:
   version: 2
@@ -92,120 +228,294 @@ network:
         - 192.168.56.10/24
 ```
 
-- `network` groups all settings; `version: 2` selects Netplan's format.
-- `renderer: networkd` uses Ubuntu Server's network service. Confirm this matches the installed image.
-- `ethernets` groups Ethernet adapters. Each interface name is a key.
-- `dhcp4: true` preserves automatic IPv4 settings for NAT.
-- `dhcp4: false` disables automatic IPv4 allocation on the lab interface.
-- `addresses` is a list; its indented dash assigns `.10` with prefix `/24`.
+### What each line means
 
-Indent using spaces only. Settings for both interfaces must line up at the same level. No Host-Only default gateway or DNS setting is needed to ping by IP on this local subnet. Do not copy `enp0s3` if your NAT interface has another name or there is no NAT adapter.
+| Setting | Value in example | Simple explanation |
+| --- | --- | --- |
+| `renderer:` | `networkd` | Tells Ubuntu to use `systemd-networkd` to manage the network. |
+| `enp0s3:` | `dhcp4: true` | Adapter 1 (NAT): get an IP automatically so we can reach the Internet. |
+| `enp0s8:` | (Your interface from Step 3) | Adapter 2 (Host-Only): our private lab connection. |
+| `dhcp4:` | `false` | Turn off automatic IP for this interface. We want a fixed address. |
+| `addresses:` | `- 192.168.56.10/24` | Assign static IP `192.168.56.10` with subnet mask `/24` (`255.255.255.0`). |
 
-In nano, press **Ctrl+O**, then **Enter** to save; **Ctrl+X** exits. Before applying, explain to your partner which lines assign the address and which lines preserve downloads.
+> [!IMPORTANT]
+> **Notice there is NO gateway line for `enp0s8`!** Windows (`192.168.56.1`) is just a neighbor on the same network, not a router. Internet traffic still flows through NAT (`enp0s3`).
 
-## 5. Validate and apply
+### 4.5 Save and exit nano
+
+1. Press **Ctrl + O** (WriteOut).
+2. Press **Enter** to confirm the filename.
+3. Press **Ctrl + X** to exit nano.
+
+---
+
+## Step 5 — Validate and apply the configuration
+
+**What we are doing:** Checking the file for formatting mistakes, then applying the new network settings.
+
+**Why:** Testing the file first prevents network crashes caused by simple typing mistakes.
+
+### 5.1 Set secure file permissions
+
+Netplan requires configuration files to be readable only by root:
 
 ```bash
-sudo chmod 600 /etc/netplan/50-cloud-init.yaml
+sudo chmod 600 /etc/netplan/00-installer-config.yaml
+```
+
+### 5.2 Test for syntax errors
+
+Run:
+
+```bash
 sudo netplan generate
-sudo netplan try
+```
+
+- **What it does:** Reads the YAML file and checks if the formatting and indentation are correct.
+- **What to look for:**
+  - **If it outputs NOTHING:** That is great news! Silence means there were no syntax errors.
+  - **If it shows an error:** Read the error carefully. It will tell you the exact line number where you have a spacing or indentation problem. Reopen nano, fix the spacing, and run `netplan generate` again.
+
+### 5.3 Apply the configuration
+
+Once `netplan generate` succeeds with no errors, apply the settings:
+
+```bash
 sudo netplan apply
 ```
 
-Use the actual file name. `chmod 600` restricts this configuration to its owner (normally root); `6` gives owner read/write, and both zeros deny group/other access. `netplan generate` checks and translates the YAML without applying it. Fix any errors it reports before proceeding.
+**What should happen:** The command finishes silently in 1–2 seconds. Ubuntu has now applied your static IP.
 
-`netplan try` temporarily applies the settings and asks for confirmation. At the local console, verify the address and connectivity before confirming within the displayed timeout. If necessary, use a second VM console. A timeout is intended to revert settings, but always inspect the actual state afterward; do not assume rollback succeeded. `netplan apply` applies the saved configuration; run it once the validated settings are correct. No output usually means no error was reported, not proof of connectivity.
+**If it fails:** Do not panic. Check [Recovery](#recovery-restore-the-backup) to restore your backup if needed.
 
-## 6. Verify the assigned address and route
+---
+
+## Step 6 — Check the Ubuntu IP address
+
+**What we are doing:** Verifying that Ubuntu is now actively using `192.168.56.10`.
+
+**Why:** Never assume a command worked just because it did not show an error. Always verify the actual state.
+
+Run:
 
 ```bash
-ip addr show enp0s8
-ip route
+ip addr
+```
+
+Find your Host-Only interface (`enp0s8`). You should now see:
+
+```text
+3: enp0s8: <BROADCAST,MULTICAST,UP,LOWER_UP> ...
+    inet 192.168.56.10/24 brd 192.168.56.255 scope global enp0s8
+```
+
+You can also run a quick summary check:
+
+```bash
 hostname -I
 ```
 
-`show enp0s8` narrows the address view to your lab interface. Look for `inet 192.168.56.10/24`. In the route list, expect a directly connected route for `192.168.56.0/24` on that interface. The address summary should include `.10`; it can also include the NAT address and IPv6 addresses.
+- **What to look for:** You should see `192.168.56.10` in the output list.
+- **What it means:** Success! Ubuntu Server has claimed `192.168.56.10` on the Host-Only network.
 
-Record the **after** output. If two IPv4 addresses appear unexpectedly on the lab interface, inspect merged Netplan settings instead of declaring success.
+---
 
-## 7. Test Windows host to Ubuntu VM
+## Step 7 — Ping Ubuntu from Windows
 
-In Windows PowerShell:
+**What we are doing:** Sending test messages from Windows to Ubuntu to see if Windows can reach the server.
+
+**Why:** This proves that inbound traffic from your host computer reaches the VM.
+
+Open **PowerShell on Windows** and run:
 
 ```powershell
 ping -n 4 192.168.56.10
 ```
 
-Windows `ping` sends Echo requests; `-n 4` requests four tests. The destination is the VM's static address. Record replies, packet loss, and the exact destination. Ubuntu uses `-c`, not Windows's `-n`, for the count.
+*(Note: On Windows, `-n 4` sends 4 test packets).*
 
-## 8. Test Ubuntu VM to Windows host
+### Expected output (Success)
 
-In Ubuntu:
+```text
+Pinging 192.168.56.10 with 32 bytes of data:
+Reply from 192.168.56.10: bytes=32 time<1ms TTL=64
+Reply from 192.168.56.10: bytes=32 time<1ms TTL=64
+Reply from 192.168.56.10: bytes=32 time<1ms TTL=64
+Reply from 192.168.56.10: bytes=32 time<1ms TTL=64
+
+Ping statistics for 192.168.56.10:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)
+```
+
+**What this proves:** Windows successfully sent 4 packets to Ubuntu, and Ubuntu successfully replied to all 4!
+
+**If it fails:** If you see `Request timed out` or `Destination host unreachable`, go to [Step 9](#step-9--troubleshoot-if-communication-does-not-work).
+
+---
+
+## Step 8 — Ping Windows from Ubuntu
+
+**What we are doing:** Sending test messages from Ubuntu to Windows to test the reverse direction.
+
+**Why:** Network communication is a two-way street. Testing Windows → Ubuntu does not guarantee Ubuntu → Windows works.
+
+In your **Ubuntu console**, run:
 
 ```bash
 ping -c 4 192.168.56.1
 ```
 
-`-c 4` sends four requests to the Windows Host-Only address. Successful replies in both directions support local reachability. They do not test Internet access, DNS, or application availability.
+*(Note: On Linux, `-c 4` sends 4 test packets).*
 
-Windows may block inbound Echo requests. If only VM → host fails, inspect Windows Defender Firewall with the instructor. If permitted, create a narrowly scoped inbound ICMPv4 Echo rule for the Host-Only adapter/local address and the VM's source address, with the appropriate network profile. Keep the firewall enabled; do not enable broad access on the physical network. Record and remove any temporary lab rule afterward. Also inspect Ubuntu firewall policy if host → VM fails.
+### Expected output (Success)
 
-## 9. Troubleshoot with evidence
+```text
+PING 192.168.56.1 (192.168.56.1) 56(84) bytes of data.
+64 bytes from 192.168.56.1: icmp_seq=1 ttl=128 time=0.421 ms
+64 bytes from 192.168.56.1: icmp_seq=2 ttl=128 time=0.380 ms
+64 bytes from 192.168.56.1: icmp_seq=3 ttl=128 time=0.410 ms
+64 bytes from 192.168.56.1: icmp_seq=4 ttl=128 time=0.395 ms
 
-- Is the VM running?
-- Is the correct adapter enabled and its virtual cable connected?
-- Is Host-Only selected, and is it the same network as the Windows adapter?
-- Is the interface name correct, confirmed by MAC address?
-- Are both devices in the same subnet, with the same intended prefix and different IPs?
-- Is Netplan YAML indentation correct, using spaces and no duplicate keys?
-- Did `sudo netplan generate` succeed?
-- Was `sudo netplan apply` executed successfully?
-- What does `ip addr` show now, not just before the edit?
-- Does `ip route` show the connected subnet on the expected interface?
-- Can both systems ping each other? Which direction fails?
-- Do scoped firewall rules permit Echo requests and replies?
+--- 192.168.56.1 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3074ms
+```
 
-| Symptom | First useful check |
-| --- | --- |
-| Interface missing | VirtualBox adapter enabled; match the MAC again |
-| YAML parse error | Reported line, nearby indentation, tabs, and duplicate keys |
-| Old or unexpected address | Correct file/interface; merged Netplan definitions; apply result |
-| Destination host unreachable | Link, subnet, target address, duplicate IP, and local route |
-| Request timed out | Destination running, return path, and firewall; timeout alone does not identify the cause |
-| Local ping works but Internet does not | NAT adapter and default route; Host-Only does not supply Internet |
+### What if this ping fails?
 
-Change one thing at a time and repeat the same test. Record the symptom, evidence, hypothesis, correction, and result.
+If Ubuntu says `100% packet loss` when pinging Windows, but Step 7 (Windows → Ubuntu) succeeded:
+- **Don't panic:** Your IP configuration is almost certainly correct!
+- **The culprit:** Windows Defender Firewall blocks incoming ICMP (ping) requests by default on private adapters. See [Check firewall rules with the instructor](#check-firewall-rules-with-the-instructor) below to understand why.
 
-## Recovery and persistence check
+---
 
-If editing the existing file caused a failure, use the VM console to restore your backup:
+## Step 9 — Troubleshoot if communication does not work
+
+**What we are doing:** Following a systematic checklist to diagnose the exact issue.
+
+**Why:** Good system administrators do not guess; they gather evidence.
+
+### Diagnostic checklist
+
+Work through these questions one by one:
+
+1. **Is the VM running?** If the VM is suspended or powered off, no packets can be delivered.
+2. **Is VirtualBox Adapter 2 enabled with Cable Connected?** Go to VM Settings → Network → Adapter 2 → Advanced → ensure **Cable Connected** is checked.
+3. **Does Windows have `192.168.56.1`?** Run `ipconfig` in Windows PowerShell. Check the `VirtualBox Host-Only Network` section.
+4. **Does Ubuntu have `192.168.56.10`?** Run `ip addr` on Ubuntu. Does `192.168.56.10/24` appear under your Host-Only interface?
+5. **Did you type the IP addresses correctly?** Both addresses must start with `192.168.56.` and end with different numbers (`.1` on Windows, `.10` on Ubuntu).
+6. **Did you use spaces in Netplan?** Tabs cause Netplan to fail silently or throw errors. Re-check `/etc/netplan/00-installer-config.yaml`.
+7. **Which direction failed?**
+   - If **Windows → Ubuntu** fails: Recheck Ubuntu's IP (`ip addr`) and check if Adapter 2 is attached to Host-Only.
+   - If **Ubuntu → Windows** fails: Recheck Windows Firewall settings.
+
+---
+
+## Focused troubleshooting
+
+### Check the route
+
+A **route** tells Ubuntu which doorway to use when sending data to a specific network:
 
 ```bash
-sudo cp /etc/netplan/50-cloud-init.yaml.lab21-backup /etc/netplan/50-cloud-init.yaml
+ip route
+```
+
+**What to look for:**
+- You should see a line for `192.168.56.0/24 dev enp0s8` (where `enp0s8` is your Host-Only interface).
+- You should see `default via 10.0.2.2 dev enp0s3` (this is the NAT default gateway for Internet).
+- **Important:** There should be NO default route pointing to `192.168.56.1`. Windows is not acting as your Internet router!
+
+### Common symptoms and quick fixes
+
+| Symptom | Most likely cause | What to check / do |
+| --- | --- | --- |
+| Interface missing from `ip addr` | Adapter 2 disabled in VirtualBox | Shut down VM, enable Adapter 2 in VirtualBox settings, start VM |
+| `Invalid YAML at line X` | Pressed Tab key or wrong indentation | Open file in nano, remove tabs, use 2 spaces per level |
+| Old IP address still shows | `netplan apply` was not run | Run `sudo netplan generate && sudo netplan apply` |
+| `Destination host unreachable` | Host-Only network not connected or wrong subnet | Verify VirtualBox Network Manager settings and adapter attachment |
+| `Request timed out` (Ubuntu → Windows) | Windows Firewall blocking incoming ping | See firewall section below; do not disable the firewall completely |
+| Internet package downloads fail | NAT adapter altered or default route removed | Ensure `enp0s3` still has `dhcp4: true` in your Netplan file |
+
+### Check firewall rules with the instructor
+
+By default, Windows Defender Firewall drops incoming ICMP Echo (ping) requests. If Windows can ping Ubuntu, but Ubuntu cannot ping Windows:
+
+1. On Windows, open **PowerShell as Administrator**.
+2. To allow incoming pings **only on the private VirtualBox adapter**, an instructor may recommend running:
+   ```powershell
+   New-NetFirewallRule -DisplayName "Allow ICMPv4 for VirtualBox Lab" -Direction Inbound -Protocol ICMPv4 -IcmpType 8 -Action Allow -InterfaceAlias "VirtualBox Host-Only Network"
+   ```
+3. Test `ping -c 4 192.168.56.1` from Ubuntu again.
+4. **Security rule:** Never turn off Windows Firewall completely. Restricting the rule to the specific VirtualBox interface keeps your computer safe on Wi-Fi.
+
+---
+
+## Recovery: restore the backup
+
+If you made an error in your Netplan configuration and cannot get it to work, use your backup file to restore the original working state:
+
+```bash
+sudo cp /etc/netplan/00-installer-config.yaml.lab21-backup /etc/netplan/00-installer-config.yaml
 sudo netplan generate
 sudo netplan apply
 ```
 
-`cp` restores the saved contents; generate validates them, and apply activates them. Substitute your recorded filenames. If you created a separate new YAML file, move that new file to a backup name ending in `.disabled` with the instructor before applying the original configuration. Verify actual addresses afterward. Use the VM snapshot if the original state cannot be recovered reliably.
+Then run `ip addr` to confirm your system has returned to its initial state. If needed, you can also revert to the VirtualBox snapshot you took before the lab.
 
-When the intended configuration works, reboot the VM through its normal shutdown/restart controls. Repeat address and two-way ping checks to confirm persistence. Keep the configuration for the next lesson unless the instructor asks you to restore it.
+---
 
-## Submit evidence and explanations
+## Optional: Netplan try
 
-Submit your address plan, adapter/MAC mapping, before/after output, final YAML, both ping results, and a reboot verification. Do not include passwords or unrelated personal network details.
+Before permanently saving changes, Netplan has a built-in safety feature called `netplan try`:
 
-Answer in your own words:
+```bash
+sudo netplan try
+```
 
-1. What interface and address did you configure, and why use a static IP for this server?
-2. Why can these two addresses communicate locally? What would changing the VM to `192.168.57.10/24` do?
-3. Why is the Host-Only adapter not given a default gateway?
-4. What does each verification command prove, and what does it not prove?
-5. Describe one observed or instructor-provided failure and your evidence-based investigation.
+- **What it does:** Temporarily applies the configuration and gives you a countdown timer (usually 120 seconds).
+- **How it works:** If you press **Enter**, the changes become permanent. If you do nothing (or if you get disconnected), Netplan automatically rolls back to the previous configuration when the timer expires.
 
-Completion means correct configuration, two-way verification (or a documented policy restriction for instructor assessment), and clear reasoning. The instructor sets grading and submission dates.
+---
+
+## Instructor notes
+
+- **Subnet conflicts:** Verify that `192.168.56.0/24` does not collide with the student's physical home or campus LAN/Wi-Fi subnet. If a collision occurs, assign a different subnet (e.g., `192.168.99.0/24`) and have students adjust addresses accordingly.
+- **Cloud-init files:** On cloud or server installations, `50-cloud-init.yaml` may exist. If present, explain that cloud-init generates network configuration automatically on boot unless disabled.
+- **Multiple YAML files:** Netplan merges all `.yaml` files in lexicographical order. Ensure students only have one active configuration file defining their interfaces.
+- **Network renderers:** This lab standardizes on `renderer: networkd` for Ubuntu Server. Desktop Ubuntu installs often use `NetworkManager`.
+
+---
+
+## Finish: verify persistence and explain your work
+
+A real server must keep its configuration across reboots. Test this now:
+
+1. **Reboot your Ubuntu Server:**
+   ```bash
+   sudo reboot
+   ```
+2. Log back in once the server restarts.
+3. Run `ip addr` and verify that `192.168.56.10/24` is still assigned to your Host-Only interface.
+4. Run `ping -n 4 192.168.56.10` from Windows to verify that connectivity was restored automatically.
+
+### Lab reflection questions
+
+Be prepared to answer these questions in your own words:
+
+1. **What:** What interface name and IP address did you assign to your Ubuntu Server?
+2. **Why:** Why do servers need static IP addresses instead of random dynamic addresses?
+3. **How:** How did you verify that the configuration succeeded? What command proves it?
+4. **Troubleshooting:** If Windows can ping Ubuntu, but Ubuntu cannot ping Windows, what is the most likely cause?
+5. **Gateway:** Why did we NOT configure a gateway on the Host-Only interface?
+
+---
+
+**[Next: 2.2 Dynamic IP Addressing →](/sys-admin/module-2/dynamic-ip-addressing)**
+
+---
 
 ## References
 
-- [Netplan: configuration examples](https://netplan.readthedocs.io/en/stable/examples/)
-- [Netplan: try and rollback caveats](https://netplan.readthedocs.io/en/stable/netplan-try/)
-- [VirtualBox: networking modes](https://www.virtualbox.org/manual/ch06.html)
+- [Netplan Official Documentation: Examples](https://netplan.readthedocs.io/en/stable/examples/)
+- [Ubuntu Server Guide: Network Configuration](https://ubuntu.com/server/docs/explanation/networking/configuring-networks/)
+- [VirtualBox Manual: Chapter 6 Virtual Networking](https://www.virtualbox.org/manual/ch06.html)

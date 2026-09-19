@@ -2,30 +2,63 @@
 
 **Draft for instructor review · ITM 402**
 
-A server needs an address before another computer can reach it. DHCP can assign addresses automatically. DNS lets people use names instead of remembering addresses. This module connects those three ideas.
+In this module, we will connect two computers. We will first give our Ubuntu Server an address. Then we will learn how to give addresses automatically and use names instead of numbers.
 
-## Learning outcomes and sequence
+## Start here
 
-1. [2.1 Local Networking & Subnetting](/sys-admin/module-2/local-networking): read IPv4 addresses and prefixes; explain interfaces, routes, VirtualBox modes, and Netplan.
-2. [Lab 2.1](/sys-admin/module-2/lab-2-1): assign a static address and explain two-way Host–VM communication.
-3. [2.2 Dynamic IP Addressing](/sys-admin/module-2/dynamic-ip-addressing): trace DORA and explain pools, leases, and reservations.
-4. [2.3 Name Resolution](/sys-admin/module-2/name-resolution): explain DNS records and diagnose forward and reverse queries.
+**[Begin 2.1: Local Networking & Subnetting →](/sys-admin/module-2/local-networking)**
 
-## Lab environment and address plan
+Follow this order. The lab comes before DHCP and DNS.
 
-Assume a Windows host, VirtualBox 7.x, and an installed Ubuntu Server 24.04 LTS VM with a local console and an account allowed to use `sudo`. `sudo` runs a command with administrator privileges. The instructor must confirm versions and available packages before class. No WSL environment is assumed.
+| Order | Lesson | What you will learn to do |
+| --- | --- | --- |
+| 1 | [2.1 Local Networking & Subnetting](/sys-admin/module-2/local-networking) | Explain addresses, interfaces, and the connection between the host and VM |
+| 2 | [Lab 2.1: Static IP & Host–VM Connectivity](/sys-admin/module-2/lab-2-1) | Give Ubuntu a fixed address and test communication in both directions |
+| 3 | [2.2 Dynamic IP Addressing](/sys-admin/module-2/dynamic-ip-addressing) | Explain how DHCP gives network settings to computers |
+| 4 | [2.3 Name Resolution](/sys-admin/module-2/name-resolution) | Explain how DNS connects a computer name to an address |
 
-| Device or purpose | Example address |
+## What you need
+
+- A Windows computer with VirtualBox installed.
+- An Ubuntu Server VM that you can start and sign in to.
+- Access to the VM window, called its **local console**.
+- An Ubuntu account allowed to use `sudo`. This means it can run approved commands with administrator privileges.
+
+We use two separate connections:
+
+```text
+Windows host
+    |
+    | Host-Only: host and VM communicate
+    |
+Ubuntu Server VM
+    |
+    | NAT: optional separate Internet connection
+    |
+Internet / package downloads
+```
+
+The lessons explain Host-Only and NAT before you configure them. Do not use Bridged mode for this lab: that would connect the VM to your physical school or home network.
+
+## Our example address plan
+
+| Device | Example address |
 | --- | --- |
 | Windows Host-Only adapter | `192.168.56.1/24` |
-| Ubuntu server Host-Only interface | `192.168.56.10/24` |
-| Later DHCP client pool | `192.168.56.100`–`192.168.56.150` |
-| Later reserved client | `192.168.56.20` |
+| Ubuntu Server Host-Only interface | `192.168.56.10/24` |
 
-These are example coordinates. Check that the subnet does not overlap your LAN or VPN and that each address is unused. If the instructor assigns another subnet, update all examples consistently. `enp0s8` is an example interface name, not a value to memorize.
+An **address plan** is a record of which device uses each address. Lesson 2.1 explains the numbers and `/24`. Interface names such as `enp0s8` are examples; your VM may use different names.
 
-Keep Adapter 1 on NAT for downloads and Adapter 2 on Host-Only for the lab. Do not bridge the lab DHCP server onto a school or home network. The Host-Only network has no Internet gateway in this exercise.
+## Instructor note: prepare the lab image
+
+The examples assume VirtualBox 7.x and Ubuntu Server 24.04 LTS. Confirm the classroom versions, permissions, and network setup before practice. This is a VirtualBox lab, not a WSL lab.
+
+Check that `192.168.56.0/24` does not overlap the Windows computer's existing local network or VPN (a connection to another private network). Confirm that the chosen addresses are unused. If another subnet is assigned, update the examples consistently.
+
+Later, DHCP uses `.100`–`.150` for automatic addresses and `.20` for a reserved client. Keep the host `.1` and server `.10` outside that range. Disable VirtualBox's built-in DHCP only on this dedicated lab network before running the classroom DHCP server.
 
 ## Source and review status
 
-The approved module titles and topic scope come from the instructor's request. Lessons are new drafts; original ITM 402 handouts were not supplied. Technical references appear in each lesson. ISC DHCP remains in the syllabus example with its legacy status identified; see [Ubuntu's DHCP status guidance](https://ubuntu.com/server/docs/explanation/networking/about-dhcp/).
+The instructor supplied the approved syllabus and topics. Original ITM 402 handouts were not supplied. These new drafts retain technical references at the end of each lesson and need instructor review and a VM rehearsal.
+
+The syllabus names `isc-dhcp-server`. It remains in 2.2 as a clearly labeled legacy demonstration; the instructor must confirm a compatible isolated image. See [Ubuntu's DHCP status guidance](https://ubuntu.com/server/docs/explanation/networking/about-dhcp/).
