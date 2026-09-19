@@ -5,7 +5,7 @@
 One instructor-managed platform for multiple subjects. Initial subjects:
 
 - ITE 303 - Web Systems & Technologies 2 (current priority).
-- ITM 402 - System Administration and Maintenance (preserve existing materials).
+- ITM 402 - System Administration and Maintenance (approved Module 2 drafts; sample replacement authorized).
 
 Future hierarchy: subject -> chapters -> lessons, with subject enrollment and per-student lesson progress.
 
@@ -57,11 +57,25 @@ Keep existing full Foundation handouts intact. The application may use PostgreSQ
 - The instructor subsequently authorized new drafts and provided the syllabus. Draft pack: `docs/ite303/chapter-2/README.md`. Sample projects compiled and 23 local HTTP cases passed; student exercise solutions, platform integration, and publication remain pending. See the pack's verification notes.
 - Existing public site: https://ite-303-docs.aldenderf.com (availability was not verified in the initial review).
 
-## Temporary System Administration availability
+## ITM 402 Module 2: current draft review
 
-System Administration is temporarily unavailable to students. `SYSTEM_ADMIN_AVAILABLE` in `lib/course-availability.ts` controls the homepage card, Web Systems navbar link, and the `/sys-admin` layout's `notFound()` guard (including child routes). The root `app/_meta.json` entry is also hidden. All course sources and metadata are retained.
+- Instructor authorized removal of the five former System Admin sample lesson pages and their outdated navigation. They were not the approved syllabus.
+- Course overview now lists all five approved module titles. Modules 1 and 3–5 are explicitly unavailable; only Module 2 has lesson routes.
+- Module 2 contains 2.1 Local Networking & Subnetting, Lab 2.1 Static IP & Host–VM Connectivity, 2.2 Dynamic IP Addressing, and 2.3 Name Resolution. All are newly authored drafts requiring instructor review.
+- The instructor explicitly authorized student access. `SYSTEM_ADMIN_AVAILABLE` is `true`, and the root metadata entry is visible. The flag controls the existing homepage card, Web Systems course-switch link, and layout guard; the availability mechanism remains intact. To disable the course again, set the flag to `false`, restore `display: "hidden"` in root metadata, and rebuild. Lesson draft labels remain pending content review. No push, deployment, or merge is authorized.
+- Assumed lab: Windows host, VirtualBox 7.x, Ubuntu Server 24.04 LTS, separate NAT and Host-Only adapters. Interface names and `192.168.56.0/24` are examples to verify before use. ISC DHCP is included as a legacy syllabus demonstration, not recommended production software; the instructor must approve a compatible isolated image or use the reading exercise.
+- Next: instructor content review, confirm classroom versions, and rehearse the VM configuration/DHCP/DNS exercises before publication. Original ITM 402 handouts remain unresolved; only the supplied syllabus/topic list was available.
+- Verification: lint, TypeScript, production build, and 20 production HTTP/navigation assertions passed. The build needed worker permissions after sandbox `spawn EPERM`. Browser/mobile/keyboard/theme/console checks remain pending because no browser is available; the VM exercises have not been executed. See `docs/itm402/module-2-review.md` for the complete scope and handoff.
+- Student-access activation follow-up: confirmed the preserved layout guard, visible homepage card, course-switch link, and direct Module 2 routes. Corrected the existing Web Systems overview Chapter 2 URL from `./chapter-2` (which resolved to the missing `/chapter-2`) to `/web-systems/chapter-2`; its teaching text is unchanged.
 
-To reopen the course, set the flag to `true` and remove `display: "hidden"` from its root metadata entry, then rebuild and verify navigation and direct routes. ITE 303 remains available; this release gate does not implement authentication.
+### Module 2 beginner-reading revision — awaiting instructor review
+
+- Reorganized the existing material around simple concepts, small examples, command purpose/output, guided practice, and troubleshooting. Lab 2.1 now presents the instructor's exact nine-step workflow with expected results and failure checks.
+- Kept subnet calculations, route/firewall diagnostics, Netplan trial/recovery, generated-file caveats, DHCP protocol details, and complete ISC DHCP/BIND9 examples in clearly labeled deeper or instructor-led sections. Backups and validation remain beside the edits they protect.
+- Replaced the two System Admin `_meta.json` files with `_meta.ts`; installed Nextra 4 discovers only JS/TS metadata. This fixes the previously alphabetical sidebar and Previous/Next order. Labels are now short; page H1s retain official syllabus titles.
+- Simplified the course landing page around “Start Module 2,” with the complete syllabus in an expandable outline. Corrected System Admin repository links to `AldenDerf/learn` on this branch. Web Systems source/navigation is unchanged in this revision.
+- Verified lint, TypeScript, production build, 20 route checks, rendered desktop/mobile sidebar labels/order/active styling, Previous/Next order, and 118 internal route/fragment targets. Lab 2.1 was further streamlined with structured UI step-by-steps, before/after Netplan YAML blocks, and PowerShell/Ubuntu console indicators. Actual browser interaction, mobile layout, keyboard/theme checks, and VM execution remain unverified because the browser and classroom topology are unavailable.
+- Student access remains enabled with the release mechanism preserved. Removed draft labels from Lesson 2.1 and Lab 2.1 for classroom use today; 2.2 and 2.3 retain draft status. Per the instructor's current request, leave this revision uncommitted; do not push, deploy, or merge. Next: classroom delivery of Lab 2.1 and rehearsal of DHCP/DNS. See `docs/itm402/module-2-review.md` for details.
 
 ## Later milestones
 

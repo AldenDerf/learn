@@ -1,0 +1,283 @@
+# 2.2 Dynamic IP Addressing
+
+**Draft for instructor review · ITM 402 · Module 2**
+
+Complete [Lab 2.1](/sys-admin/module-2/lab-2-1) first. Keep the Ubuntu server's static address.
+
+## What if we have many computers?
+
+In Lab 2.1, we entered one server address ourselves. What if 30 students each need a computer on the network?
+
+Typing every address takes time. Two students might choose the same address. A typing mistake might put a computer in the wrong subnet.
+
+**DHCP**, or Dynamic Host Configuration Protocol, gives network settings to computers automatically. Think of a registration desk giving each student an available number.
+
+```text
+Computer: “I need network settings.”
+                  |
+                  v
+DHCP server: “You may use 192.168.56.100.”
+```
+
+DHCP helps assign settings. It does not create a working network connection or Internet access by itself.
+
+## Client and server
+
+- The **DHCP client** is the computer asking for settings.
+- The **DHCP server** is the program answering with settings from an administrator's plan.
+
+Our Ubuntu server keeps `192.168.56.10/24`. A **second VM** will be the client. Do not change the Windows host's physical network adapter into a practice DHCP client.
+
+## DORA: four steps for a new address
+
+DORA helps us remember the usual first exchange:
+
+1. **Discover:** the client asks whether a DHCP server is available.
+2. **Offer:** the server proposes an available address and settings.
+3. **Request:** the client asks to use the chosen offer.
+4. **Acknowledge (ACK):** the server confirms that the client may use the settings.
+
+```text
+Client                    DHCP server
+  |                            |
+  |------ Discover ----------->|
+  |<------- Offer -------------|
+  |------ Request ------------>|
+  |<--------- ACK -------------|
+```
+
+**Try it:** work with a partner. One person is the client; one is the registration desk. Use an address card for the offer. Explain why receiving an offer is not yet the same as receiving confirmation.
+
+## Pool, scope, lease, and reservation
+
+A **pool** is the set of addresses a server may give out automatically.
+
+```text
+192.168.56.100 ... 192.168.56.150
+         available client addresses
+```
+
+A **scope** is a subnet's allocation rules and options. The exact term varies between DHCP products. Here the rules describe `192.168.56.0/24` and its address pool.
+
+A **lease** is permission to use an address for a period of time. Think of borrowing a numbered locker. The client can ask to extend that permission. A lease of 600 seconds lasts 10 minutes unless renewed.
+
+A **reservation** tells DHCP to give a particular client a predictable address. The client still asks DHCP; the administrator does not manually type the IP into that client.
+
+| Method | Who supplies the address? | Example |
+| --- | --- | --- |
+| Static IP | Administrator enters it on the device | Our server: `.10` |
+| Dynamic lease | DHCP chooses from a pool | Client: `.100`–`.150` |
+| Reservation | DHCP matches a known client to a planned address | Known client: `.20` |
+
+These short forms all mean addresses beginning with `192.168.56`. Keep Windows `.1`, server `.10`, and reserved client `.20` outside the dynamic pool.
+
+**Check:** why should a server's static address not also be offered to another client? A duplicate address can cause communication problems.
+
+## Guided practice: receive an address
+
+**Goal:** let a separate Ubuntu client VM obtain an address, then explain where it came from.
+
+**Before practice:** the instructor must provide a working DHCP server on the dedicated Host-Only network. Both VMs must join that same network. Disable VirtualBox's built-in DHCP on this lab network so it does not compete with the classroom server. Do not use Bridged mode.
+
+The syllabus uses `isc-dhcp-server`. This is **legacy software**: it has reached end of life, and Ubuntu lists it as deprecated and unsupported from 24.04 LTS. The instructor must approve a compatible disposable image before running it. If unavailable, use the configuration-reading exercise below. We are not replacing the syllabus technology with a different server.
+
+### 1. Let the client request settings
+
+On the **client VM**, identify its Host-Only interface and back up Netplan as in Lab 2.1. Under that interface, set `dhcp4: true` and remove its static `addresses` entry. Preserve the separate NAT settings.
+
+Example of just the client interface's settings:
+
+```yaml
+enp0s8:
+  dhcp4: true
+```
+
+`enp0s8` must be replaced with the client's actual interface name. `dhcp4: true` means “ask DHCP for IPv4 settings.” This is a section of an existing file, not a complete Netplan file.
+
+At the client console, check the saved file:
+
+```bash
+sudo netplan generate
+```
+
+**What it does:** checks and prepares the configuration. **Look for:** no errors. **Why:** fix typing and indentation problems before changing the network.
+
+Only after validation succeeds:
+
+```bash
+sudo netplan apply
+```
+
+**What it does:** applies the client's settings. **Expected result:** the client can request a DHCP address. The command alone does not prove it received one.
+
+### 2. Check the received address
+
+On the client:
+
+```bash
+ip addr show enp0s8
+```
+
+**What it does:** shows addresses for that interface only. Replace `enp0s8` with your name.
+
+**Look for:** an `inet` address between `192.168.56.100` and `192.168.56.150`, with `/24`.
+
+**Why:** we must verify the Host-Only address, not confuse it with an address received on NAT.
+
+For a client using Ubuntu Server's `networkd` network service, also run:
+
+```bash
+networkctl status enp0s8 --no-pager
+```
+
+**What it does:** `networkctl` inspects that network service's interfaces. `status` shows details; `--no-pager` prints directly without an interactive viewer.
+
+**Look for:** interface state, assigned address, and DHCP server details where shown. Compare these with the instructor's server log, which is a record of service events.
+
+**Why:** a pool address is useful evidence, but we also want to know which server supplied it.
+
+### 3. Test and explain
+
+From the client:
+
+```bash
+ping -c 4 192.168.56.10
+```
+
+**What it does:** sends four test requests to our server. **Look for:** replies and packet loss. **Why:** it checks local communication after allocation, not whether DHCP provides Internet access.
+
+Record the client's address, prefix, server identity, and test result. Keep the server at static `.10`. Our Host-Only network has no gateway, so DHCP does not give clients an Internet route through it.
+
+## Troubleshooting: if the client gets no useful address
+
+| What you notice | What to check first |
+| --- | --- |
+| No IPv4 address | Is DHCP enabled on the correct client interface? Are both VMs on the same Host-Only network? |
+| An unexpected address | Did another server answer? Is VirtualBox DHCP still enabled? Are you looking at NAT? |
+| Address is in the pool but ping fails | Target address, connection, route, and firewall; ping failure does not prove DHCP failed |
+| Server will not start | Configuration errors and the selected server interface; see the instructor setup below |
+| Pool is full | Check existing leases; do not expand into static addresses already in use |
+| IP communication works but names fail | Check DNS separately in 2.3 |
+
+An address beginning with `169.254` may be a **link-local address**, chosen for local communication when normal allocation is unavailable. It is not proof that the classroom DHCP server supplied a lease.
+
+## Check your understanding
+
+Explain why DHCP helps a classroom, what the client and server do, and the four DORA steps. Compare a static address, a lease, and a reservation.
+
+Submit a labeled DORA diagram and your client evidence. If the instructor is using a reading exercise, label your results as predictions rather than claiming you ran the service.
+
+**[Next: 2.3 Name Resolution →](/sys-admin/module-2/name-resolution)**
+
+## Going deeper: renewals and DHCP messages
+
+The first Discover is normally a **broadcast**, a message sent to the local network rather than a known server. Later lease renewals can use a shorter exchange; every renewal need not repeat all four DORA steps.
+
+On the Ubuntu `networkd` client, an instructor may request a renewal:
+
+```bash
+sudo networkctl renew enp0s8
+```
+
+**What it does:** asks the network service to renew dynamic settings on the named interface. **Look for:** updated status and server log evidence afterward. **Why:** it tests renewal without pretending it must create a brand-new DORA exchange.
+
+DHCPv4 uses **UDP**, a transport protocol for sending messages, with server port **67** and client port **68**. A **port** identifies a service receiving traffic. If messages are blocked, the instructor should inspect these specific rules rather than disable the firewall.
+
+If two DHCP servers answer on the same lab network, they may offer different settings. Repeat the role-play with two registration desks to see why that makes diagnosis harder.
+
+**Optional calculation:** `.100`–`.150` includes 51 addresses. If all are leased, a 52nd client cannot receive a new dynamic address from that pool until one becomes available.
+
+## Instructor-led setup: isc-dhcp-server
+
+The first reading can stop above. This section preserves the server setup for a guided demonstration and configuration-reading practice.
+
+**Important:** run only on an instructor-approved, disposable compatible image. Keep the server's static `192.168.56.10/24`, use only the dedicated Host-Only interface, disable competing VirtualBox DHCP, and do not bridge onto a school/home network. NAT may remain separately for downloads. Do not download an arbitrary legacy package if the approved image cannot supply it.
+
+<details>
+<summary>Open the server installation and configuration walkthrough</summary>
+
+### Read the server configuration
+
+On the approved disposable server image:
+
+```bash
+sudo apt update
+sudo apt install isc-dhcp-server
+```
+
+`apt update` refreshes package information; it does not upgrade installed packages. `apt install` installs the named package and needed dependencies. `sudo` allows system changes. Downloads need the NAT path. An initial service-start failure may occur before an interface and subnet are configured; inspect the error rather than repeatedly reinstalling.
+
+Back up the existing files before editing:
+
+```bash
+sudo cp /etc/default/isc-dhcp-server /etc/default/isc-dhcp-server.lab22-backup
+sudo cp /etc/dhcp/dhcpd.conf /etc/dhcp/dhcpd.conf.lab22-backup
+sudo nano /etc/default/isc-dhcp-server
+```
+
+`cp` preserves each file; use a fresh backup name if needed. `nano` edits the service's interface selection. Set the IPv4 interface to the observed Host-Only interface, for example:
+
+```text
+INTERFACESv4="enp0s8"
+```
+
+This binds the demonstration to the lab interface. Do not use the NAT or bridged interface. Next open the DHCP configuration:
+
+```bash
+sudo nano /etc/dhcp/dhcpd.conf
+```
+
+In this dedicated demonstration file, reconcile existing active settings rather than appending duplicate subnet blocks. The minimal IPv4 lab configuration is:
+
+```text
+default-lease-time 600;
+max-lease-time 7200;
+
+subnet 192.168.56.0 netmask 255.255.255.0 {
+  range 192.168.56.100 192.168.56.150;
+  option subnet-mask 255.255.255.0;
+}
+```
+
+The first two settings give default and maximum lease durations in seconds. `subnet` and `netmask` describe the served network. `range` defines the inclusive pool; `option subnet-mask` sends the mask to clients. Braces group settings; semicolons end statements. This is ISC configuration syntax, not Netplan YAML.
+
+No `option routers` is supplied because this Host-Only network has no router. Do not advertise `.1` as a gateway merely because Windows owns it. After lesson 2.3 provides working DNS at `.10`, the instructor can add `option domain-name-servers 192.168.56.10;` inside the subnet block. That option tells clients where to ask DNS questions; it does not install DNS.
+
+### Validate, start, and inspect
+
+```bash
+sudo dhcpd -t -cf /etc/dhcp/dhcpd.conf
+sudo systemctl restart isc-dhcp-server
+sudo systemctl status isc-dhcp-server --no-pager
+sudo journalctl -u isc-dhcp-server -n 30 --no-pager
+```
+
+`dhcpd` is the server program; `-t` checks configuration syntax and `-cf` selects the file. Only restart after validation succeeds. `systemctl` controls services: `restart` applies the configuration, while `status` reports whether the service is running. `journalctl` reads logs; `-u` selects this service and `-n 30` shows the last 30 entries. `--no-pager` prints without an interactive viewer. A running service is not yet evidence that a client received a lease.
+
+
+### Reservation demonstration
+
+A **MAC address** is an identifier for a network adapter. We can use the client's observed MAC to match a reservation. Add this example to the server configuration only after replacing the example MAC:
+
+```text
+host lab-client {
+  hardware ethernet 08:00:27:12:34:56;
+  fixed-address 192.168.56.20;
+}
+```
+
+`host` groups the client rule. `hardware ethernet` matches the actual adapter. `fixed-address` supplies `.20`, outside our dynamic pool. Validate and restart using the commands above. A previous lease may remain until the client obtains new settings; follow the instructor's renewal/restart procedure, then verify `.20`. Do not assign it to another device. A reservation does not prevent an unauthorized device from joining a network.
+
+### Read logs and clean up
+
+`sudo journalctl -u isc-dhcp-server -n 30 --no-pager` reads the last 30 service events. `-u` selects this service; `-n` limits the number of entries. Look for configuration errors or allocation messages, then compare the client address and adapter identity. Running status alone is not proof of a completed lease.
+
+For cleanup, `sudo systemctl stop isc-dhcp-server` stops the service now. `sudo systemctl disable isc-dhcp-server` prevents it from starting automatically. Restore backed-up files if the instructor requests rollback. Re-enable VirtualBox DHCP only if the restored topology needs it, after the classroom server is stopped.
+
+</details>
+
+## References
+
+- [Ubuntu: DHCP overview and legacy package status](https://ubuntu.com/server/docs/explanation/networking/about-dhcp/)
+- [ISC: DHCP configuration manual](https://kb.isc.org/docs/isc-dhcp-44-manual-pages-dhcpdconf)
+- [RFC 2131: DHCP protocol](https://www.rfc-editor.org/rfc/rfc2131)

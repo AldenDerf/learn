@@ -25,7 +25,7 @@ export default async function SysAdminLayout({
               <span className="x:font-bold x:text-base">System Administration</span>
             </div>
           }
-          projectLink="https://github.com/xxoo3034/learn"
+          projectLink="https://github.com/AldenDerf/learn"
         >
           <Link
             href="/"
@@ -42,7 +42,7 @@ export default async function SysAdminLayout({
         </Navbar>
       }
       pageMap={pageMap}
-      docsRepositoryBase="https://github.com/xxoo3034/learn"
+      docsRepositoryBase="https://github.com/AldenDerf/learn/tree/system-admin-module-02"
       footer={<Footer>MIT {new Date().getFullYear()} © aldender • System Administration and Maintenance</Footer>}
     >
       {children}

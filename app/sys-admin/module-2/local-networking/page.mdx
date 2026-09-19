@@ -1,0 +1,276 @@
+# 2.1 Local Networking & Subnetting
+
+**ITM 402 · Module 2**
+
+**Our goal:** understand how the Windows computer and Ubuntu Server VM can find and communicate with each other. You will use these ideas in [Lab 2.1](/sys-admin/module-2/lab-2-1).
+
+## 1. What is a network?
+
+A **network** connects devices so they can exchange information. Your phone and laptop can share a network through a Wi-Fi router.
+
+In our lab, the two computers are:
+
+- **Windows host:** the real computer running VirtualBox.
+- **Ubuntu Server VM:** a virtual machine, or computer created by software inside the Windows computer. It is also called the **guest**.
+
+They run on the same physical computer, but they still need a network connection to talk to each other.
+
+```text
+Windows host
+    |
+    | VirtualBox Host-Only network
+    |
+Ubuntu Server VM
+```
+
+VirtualBox creates this connection in software. You do not need a physical cable between the host and VM.
+
+**Try it:** point to the host and guest on your screen. Explain which one runs Windows and which one runs Ubuntu.
+
+## 2. What is an IP address?
+
+An **IP address** is the address of a device's connection to a network. Think of it like a house address. Another computer needs an address so it knows where to send information.
+
+Our server's example address is:
+
+```text
+192.168.56.10
+```
+
+This is an **IPv4** address. It has four numbers separated by dots. Each number is from 0 to 255. In this lesson, we use IPv4 to connect the host and VM.
+
+Each device on this local network needs a different address. Giving two devices the same address is like giving two houses the same address: delivery becomes confusing.
+
+## 3. What is a subnet?
+
+A **subnet** is a group of addresses that belong to the same network. Think of it as a neighborhood.
+
+```text
+Windows host
+192.168.56.1/24
+       |
+       | Same Host-Only network
+       |
+Ubuntu Server VM
+192.168.56.10/24
+```
+
+For our example, both addresses belong to the `192.168.56.0/24` network. The `/24` is called a **prefix length**. It tells the computer how to identify the network part of an address.
+
+For these `/24` examples, the first three numbers match. The last number is different for each device. This is enough to follow the first lab; you do not need to calculate subnets yet.
+
+**Check:** `192.168.56.1/24` and `192.168.56.10/24` belong together. `192.168.57.10/24` is in a different subnet. Matching the first three numbers is a shortcut for this `/24` example, not a rule for every prefix.
+
+A **subnet mask** is another way to write the network boundary. Windows may show `255.255.255.0` where Ubuntu shows `/24`. They mean the same boundary here. Optional calculations are at the end of this lesson.
+
+## 4. What is a network interface?
+
+A **network interface** is a computer's connection to a network. Think of it as a doorway. A computer can have more than one doorway.
+
+Windows may have Wi-Fi and a VirtualBox Host-Only adapter. Ubuntu may have one virtual adapter for Internet access and another for the lab.
+
+```text
+Ubuntu Server VM
+  |
+  +-- NAT interface -------> Internet / downloads
+  |
+  +-- Host-Only interface --> Windows host
+```
+
+Ubuntu gives each interface a name, such as `enp0s3` or `enp0s8`. These are examples, not names to memorize. We must identify the Host-Only interface before changing its address.
+
+### Inspect interfaces with `ip addr`
+
+Before changing anything, find out which connections Ubuntu has. Run in the Ubuntu console:
+
+```bash
+ip addr
+```
+
+**What it does:** `ip` is Linux's network tool. `addr` means addresses. The command lists interfaces and their addresses.
+
+**What to look for:** find an interface name and an IPv4 address after `inet`. After the lab, one part of the output might look like:
+
+```text
+enp0s8: ...
+    inet 192.168.56.10/24 ...
+```
+
+**Why we use it:** we need to know which interface we will configure. Before the lab, it may have a different address or no IPv4 address.
+
+**Try it:** write down your interface names and their `inet` values. Do not choose `lo`: this is **loopback**, the computer's connection to itself. `127.0.0.1` does not identify the VM to Windows.
+
+**If it looks different:** do not rename an interface to match this handout. Lab Step 3 shows how to match the correct adapter.
+
+## 5. Host-Only or NAT: which connection do we need?
+
+**Host-Only** connects the Windows host and attached VMs on a private virtual network. We use it for the lab. It does not provide Internet access by itself.
+
+**NAT**, short for Network Address Translation, lets the VM make connections outward through VirtualBox. We keep it as a separate connection for downloads. It does not automatically allow Windows to start a direct connection to the VM's NAT address.
+
+| Connection | Main purpose here | Example VirtualBox setting |
+| --- | --- | --- |
+| Host-Only | Windows and Ubuntu communicate with each other | Adapter 2: Host-Only Adapter |
+| NAT | Ubuntu downloads software from the Internet | Adapter 1: NAT |
+
+**Check:** which connection should carry a ping from Windows to the VM's lab address? Host-Only. Which connection can carry an Ubuntu package download? NAT.
+
+**Important:** select the same Host-Only network for the host adapter and VM. Do not substitute Bridged mode, which puts the VM on the physical school or home network.
+
+## 6. Static and dynamic IP addresses
+
+A **static IP address** is set by an administrator. It stays as configured until someone changes it.
+
+A **dynamic IP address** is given automatically by a DHCP server. Lesson 2.2 explains DHCP. This is useful when many computers need settings.
+
+We give our server a static address so students know where to find it each time:
+
+```text
+Windows sends to 192.168.56.10
+                    |
+                    v
+              Ubuntu Server
+```
+
+A static address must still be unused and in the correct subnet. Writing an address into a file does not prove the connection works.
+
+## 7. What is a gateway?
+
+A **gateway** is usually a router that forwards information to another network. Think of it as the exit from your neighborhood.
+
+Our host and VM share a local Host-Only network. They do not need a gateway to communicate with each other. Windows's `192.168.56.1` is not automatically a gateway just because it ends in `.1`.
+
+A **route** is a rule telling the computer which connection to use. A **default route** is the fallback for destinations that have no more specific route.
+
+### Inspect routes with `ip route`
+
+Use this to check which interface carries local or Internet traffic:
+
+```bash
+ip route
+```
+
+**What it does:** lists Ubuntu's route rules.
+
+**What to look for:** after the lab, expect a line for `192.168.56.0/24` using the Host-Only interface. If NAT is configured, `default via ...` normally uses the NAT interface. `dev` in the output means the interface to use.
+
+**Why we use it:** the right address and the right route are both important. Do not add a Host-Only gateway to solve a problem between local neighbors.
+
+**Try it:** find the interface beside the local subnet. Compare it with your `ip addr` notes.
+
+## 8. Two more ways to check the connection
+
+### Get a quick address summary
+
+Use this when you want a short list of Ubuntu's assigned addresses:
+
+```bash
+hostname -I
+```
+
+**What it does:** prints the computer's assigned addresses. Use a capital `I`.
+
+**What to look for:** your lab address after setup. You may also see NAT and IPv6 addresses. IPv6 is another IP address format; this lab configures IPv4 only.
+
+**Why we use it:** it is a quick check. It does not show which interface owns each address, so use `ip addr` when you need that detail.
+
+### Test reachability with `ping`
+
+After both lab addresses are set, ask Windows to reply to a small test message:
+
+```bash
+ping -c 4 192.168.56.1
+```
+
+**What it does:** Ubuntu sends four Echo requests, or “are you reachable?” messages. `-c 4` limits the count to four. The final value is the destination address.
+
+**What to look for:** replies and the packet-loss summary. A **packet** is a small piece of network data. Zero percent loss means all four replies returned in this test.
+
+**Why we use it:** it checks whether the other device can reply. It does not prove that DNS, a website, or Internet access works.
+
+**If there is no reply:** check the address, adapter, route, and firewall. A **firewall** controls allowed network traffic. It may block ping even when the IP address is correct. Keep it enabled; ask the instructor about a rule limited to the lab connection.
+
+## 9. What is Netplan?
+
+**Netplan** is Ubuntu Server's way to describe network settings in a file. Ubuntu reads that description and gives the settings to its network service, the background program that manages connections.
+
+The files use **YAML**, a text format with names and values. Spaces at the start of a line show which settings belong together. This is called **indentation**. Use spaces, not tabs. A setting placed under the wrong interface can change the wrong connection.
+
+First identify your interfaces. Then read this example; do not apply it yet. [Lab 2.1](/sys-admin/module-2/lab-2-1) includes backup and validation steps.
+
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s3:
+      dhcp4: true
+    enp0s8:
+      dhcp4: false
+      addresses:
+        - 192.168.56.10/24
+```
+
+| Line | Simple meaning |
+| --- | --- |
+| `network:` | Start the network settings |
+| `version: 2` | Use Netplan's configuration format version 2, not Ubuntu version 2 |
+| `renderer: networkd` | Ask the `systemd-networkd` network service to apply the settings |
+| `ethernets:` | Group the wired/virtual Ethernet interfaces |
+| `enp0s3:` | Our example NAT interface; yours may have another name |
+| `dhcp4: true` | Receive IPv4 settings automatically for NAT |
+| `enp0s8:` | Our example Host-Only interface; identify yours first |
+| `dhcp4: false` | Do not ask DHCP for IPv4 settings on this interface |
+| `addresses:` | List the addresses we want this interface to use |
+| `- 192.168.56.10/24` | Give it our example server address and prefix |
+
+**Practice without changing the VM:** point to the line that assigns the static IP. Point to the line that keeps NAT automatic. Explain why copying `enp0s8` without checking your VM is unsafe.
+
+**Important:** preserve existing NAT settings. Do not paste duplicate `network:` sections or overwrite an unfamiliar file. Multiple files and generated settings are explained in the lab's instructor notes.
+
+## 10. If communication does not work
+
+Work from the simplest check to the next:
+
+1. **Connection:** is the VM running? Is Host-Only selected and the virtual cable connected?
+2. **Address:** is the correct interface using the expected, unique IP and `/24` prefix?
+3. **Route:** does Ubuntu show this local subnet on the Host-Only interface?
+4. **Firewall:** is the reply blocked? Ping failure alone does not identify the cause.
+5. **Name or service:** if communication by IP works, investigate DNS or the application separately.
+
+Explain what you changed and test again. Do not change many settings at once.
+
+## Ready for Lab 2.1?
+
+In your own words, explain an IP address, subnet, interface, gateway, static address, Host-Only, NAT, and Netplan. Then answer: what will you inspect before editing, and what will you test afterward?
+
+**[Continue to Lab 2.1: Static IP & Host–VM Connectivity →](/sys-admin/module-2/lab-2-1)**
+
+## Going deeper: understanding /24 and subnetting
+
+This section adds detail. It is not a prerequisite for the first lab.
+
+IPv4 uses 32 **bits**, each a binary digit of 0 or 1. `/24` means the first 24 bits identify the network, leaving 8 bits for addresses inside it. The equivalent mask is `255.255.255.0`.
+
+| Value | Meaning in our `/24` example |
+| --- | --- |
+| `192.168.56.0/24` | Network identifier; do not assign `.0` to a device |
+| `192.168.56.1`–`192.168.56.254` | 254 usable device addresses; each must be unique |
+| `192.168.56.255` | Broadcast address, used to address the subnet as a group; do not assign it to a device |
+
+**Subnetting** divides a network's address space into smaller networks. Splitting this `/24` into two `/25` networks gives `192.168.56.0/25` and `192.168.56.128/25`. Each has 126 ordinary host addresses. Under `/25`, `.10` and `.130` are in different subnets even though their first three numbers match. Always read the prefix.
+
+**Optional check:** why does the “first three numbers match” shortcut stop working for this `/25` example?
+
+## Technical notes
+
+- `UP` in `ip addr` means an interface is administratively enabled; `LOWER_UP` indicates a working lower-level link. These help separate connection problems from address problems.
+- `link/ether` shows a **MAC address**, an identifier for the network adapter. The lab uses it to match Ubuntu's interface with VirtualBox's adapter.
+- Ping uses **ICMP**, a network protocol for control and diagnostic messages. Allowing ping does not mean allowing every application.
+- NAT normally allows the VM to initiate outward connections. Inbound connections can require **port forwarding**, a rule directing traffic to a guest service. We use Host-Only instead for this lab's direct host–VM link.
+
+## References
+
+- [Ubuntu: configuring networks](https://ubuntu.com/server/docs/explanation/networking/configuring-networks/)
+- [Oracle VirtualBox: virtual networking](https://www.virtualbox.org/manual/ch06.html)
+- [Netplan configuration reference](https://netplan.readthedocs.io/en/stable/netplan-yaml/)
