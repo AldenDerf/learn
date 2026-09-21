@@ -1,0 +1,217 @@
+# 2.2.1 Understanding REST API Design
+
+**ITE 303 - Web Systems and Technologies 2**
+
+**Topic: 2.2 REST Constraints & Architectural Concerns**
+
+**New lesson draft for instructor review**
+
+## What You Will Learn
+
+By the end of this lesson, you should be able to:
+
+1. Explain an API resource in simple words and find resources in a small application.
+2. Tell a collection from one identified resource.
+3. Explain what the URL and HTTP method each tell us.
+4. Plan simple routes and improve confusing route names.
+5. Write a short API route plan before writing Express code.
+
+## Start with Lab 2.1
+
+In [Lab 2.1](/web-systems/chapter-2/lab-2-1), you built a Student Information API with routes like these:
+
+```text
+GET  /students
+GET  /students/3
+POST /students
+```
+
+You already built these routes in Lab 2.1. Now we are learning **why** routes are designed this way.
+
+Think first: Why did we use `GET /students` instead of `GET /getStudents`?
+
+Both could be written in Express. The first is usually clearer because `/students` names the thing we are asking about, while `GET` says what we want to do. This is a useful part of REST-style API design: make routes clear and predictable for other developers.
+
+Our question for this lesson is: **How should we design API routes so they are clear, predictable, and easy for other developers to understand?**
+
+## 1. Find the Resource
+
+Imagine a school office with folders for students, courses, and teachers. A library might have folders for books and authors. An online shop might track products and orders.
+
+An **API resource** is a thing or group of things that an API lets us work with. In these examples, students, courses, teachers, books, products, and orders can be resources. A resource is an idea in the API; you do not need to know where its information is stored to name it.
+
+We can give each group a clear URL path:
+
+```text
+students -> /students
+courses  -> /courses
+books    -> /books
+products -> /products
+```
+
+The path answers **what resource?** The HTTP method answers **what do we want to do?**
+
+```text
+GET  + /students = ask for student information
+POST + /students = send student information
+```
+
+In Lab 2.1, `POST /students` received and echoed a sample student; it did not save a new student. A route's real behavior still depends on its handler.
+
+## 2. A Collection or One Student?
+
+`/students` points to the **collection**: the group of students. `/students/3` points to **one student**, identified by `3`.
+
+```text
+/students
+  |-- student 1
+  |-- student 2
+  `-- student 3  <- /students/3
+```
+
+In Express, we write a placeholder for the identifier:
+
+```typescript
+app.get('/students', (req, res) => {
+  res.json({ message: 'Student collection requested' });
+});
+
+app.get('/students/:id', (req, res) => {
+  res.json({ studentId: req.params.id });
+});
+```
+
+The `:id` part is a **route parameter**. A request to `/students/3` puts the string `"3"` in `req.params.id`. The first handler answers a request about the collection; the second answers a request about one identified student. These small responses only demonstrate the routes. They do not look up student records.
+
+## 3. Combine a Resource and a Method
+
+| Goal | HTTP method | Route |
+| --- | --- | --- |
+| Ask for all students | `GET` | `/students` |
+| Ask for student 3 | `GET` | `/students/3` |
+| Send a student | `POST` | `/students` |
+
+Notice that `GET /students` and `POST /students` use the same path. The method tells Express which action the client requested. Lab 2.1 already used this pattern; its POST handler received data without storing it. In an API that creates records, a POST handler could create a student, but that behavior needs an implementation.
+
+The POST plan can become a small route definition too:
+
+```typescript
+app.post('/students', (req, res) => {
+  res.json({ message: 'Student data received' });
+});
+```
+
+## 4. Make Routes Easier to Predict
+
+| Confusing route | Clearer route | Why? |
+| --- | --- | --- |
+| `GET /getStudents` | `GET /students` | `GET` already says we want to retrieve data. |
+| `GET /getStudent/3` | `GET /students/3` | The path names one student in the collection. |
+| `POST /createStudent` | `POST /students` | The method carries the action; the path names the resource. |
+
+These are design conventions, not rules that make every other route invalid. A consistent pattern helps developers guess routes they have not seen yet. It also saves us from inventing a new action word for every URL.
+
+For example, after learning `GET /books`, what route would you guess retrieves one book? Think of the collection and an identifier: `GET /books/10` is a natural guess.
+
+## 5. Design Before Writing Code
+
+Before typing `app.get(...)`, write a small plan:
+
+| Planning question | Example answer |
+| --- | --- |
+| Resource? | students |
+| Goal? | Retrieve one student |
+| Method? | `GET` |
+| Route? | `/students/:id` |
+| Expected response? | Information about the requested student |
+
+Then turn the plan into an Express route:
+
+```typescript
+app.get('/students/:id', (req, res) => {
+  // Use req.params.id to prepare the response.
+});
+```
+
+The code above shows where the route design goes. It is an outline, not a complete handler. **Design the API first. Implement it second.**
+
+## 6. Guided Practice: Predict, Then Check
+
+Pause and answer these before opening the answers.
+
+1. What resource is represented by `/courses`?
+2. Does `/students/7` name a collection or one student?
+3. Which is usually clearer for retrieving all books: A. `GET /getAllBooks` or B. `GET /books`? Why?
+
+<details>
+<summary>Check your predictions</summary>
+
+1. Courses are the resource; `/courses` names the collection.
+2. It names one student identified by `7`.
+3. B. `GET /books` follows the pattern: the path names books and `GET` says to retrieve information.
+
+</details>
+
+## 7. Your Turn: Plan a Library API
+
+You are designing an API for a small library system. Its resources include **books** and **authors**. Make a route plan with a goal, method, path, and expected response for each task:
+
+1. Retrieve all books.
+2. Retrieve book 10.
+3. Send a new book's information.
+4. Retrieve all authors.
+5. Retrieve author 4.
+
+Next, improve these confusing routes: `/getBooks`, `/addNewBook`, and `/getAuthorById/4`. Add a suitable HTTP method to each improved route. Explain in one sentence why each change makes the API easier to predict.
+
+Write your plan before writing any Express code. Compare it with a classmate, or check one possible plan below after you try.
+
+<details>
+<summary>See one possible library plan after you try</summary>
+
+| Goal | Method | Route | Expected response |
+| --- | --- | --- | --- |
+| Retrieve all books | `GET` | `/books` | A list of books |
+| Retrieve book 10 | `GET` | `/books/10` | Information about book 10 |
+| Send a new book's information | `POST` | `/books` | A response about the submitted book |
+| Retrieve all authors | `GET` | `/authors` | A list of authors |
+| Retrieve author 4 | `GET` | `/authors/4` | Information about author 4 |
+
+`/getBooks` becomes `GET /books`; `/addNewBook` becomes `POST /books`; `/getAuthorById/4` becomes `GET /authors/4`. The methods express the requested action, and the paths consistently identify the resources. A real server still needs handlers to produce these responses.
+
+</details>
+
+## 8. Check Your Understanding
+
+Try these without looking back.
+
+1. In `/products`, what is the resource?
+2. Is `/books` a collection or an individual resource? What about `/books/10`?
+3. Which would you choose for all authors: `GET /getAuthors` or `GET /authors`?
+4. Which method fits a request to retrieve one course?
+5. Improve `POST /createBook`.
+6. Why is `/students` generally clearer than `/getStudents` when paired with `GET`?
+7. A library wants information about author 4. Write the method and route.
+
+<details>
+<summary>View the concise answers</summary>
+
+1. Products.
+2. `/books` is the collection; `/books/10` identifies one book.
+3. `GET /authors`.
+4. `GET`, with a route such as `/courses/2` for course 2.
+5. `POST /books`.
+6. `/students` names the resource; `GET` already tells us the action. This keeps the pattern simple and consistent.
+7. `GET /authors/4`.
+
+</details>
+
+## Recap
+
+1. Find the resource.
+2. Give the resource a clear URL.
+3. Use the HTTP method to express the action.
+4. Keep route patterns consistent.
+5. Design the API before writing the Express route.
+
+You can now design clear resource-oriented routes. In **2.2.2 REST Constraints — Explained Simply**, you will learn the broader constraints that define REST.

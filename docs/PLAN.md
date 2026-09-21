@@ -38,14 +38,20 @@ Keep existing full Foundation handouts intact. The application may use PostgreSQ
 - Next: classroom use of Chapter 2.1. The six materials are instructor-approved; Lab 2.1 no longer carries a draft label. Keep the legacy combined `01-server-lifecycle.md` and its hidden direct route as reference. Any retirement of that reference or Chapter 2.2 work is separately scoped.
 - Original Chapter 2 source handouts remain unresolved; this sequence is instructor-requested new material derived from the local teaching pack.
 
+### Beginner 2.2 sequence update
+
+- [x] Implement 2.2.1 Understanding REST API Design as a new instructor-review draft, with canonical MDX material, a thin route wrapper, and a visible entry under the official 2.2 topic heading. Keep the combined 2.2 material hidden as a legacy reference.
+- Verification: `pnpm lint`, `pnpm exec tsc --noEmit`, and `pnpm build` passed (the build needed worker permission after sandbox `spawn EPERM`). Production HTTP requests returned 200 for the new lesson, chapter overview, Lab 2.1, and legacy 2.2 route; the lesson title, library activity, and overview link appeared in rendered HTML. Browser visual, mobile, keyboard, and console checks remain unverified because no browser was available.
+- Next: instructor review of 2.2.1, then 2.2.2 REST Constraints — Explained Simply. Do not treat all of topic 2.2 as complete. Original Chapter 2 sources remain unresolved.
+
 ## Known baseline and content sources
 
 ### Temporary Chapter 2.2 visibility and portal layout
 
-- Chapter 2.2 is temporarily hidden with `display: 'hidden'` in chapter metadata; its overview heading retains the text without a route link. Its direct route and canonical source remain intact.
+- The combined Chapter 2.2 lesson remains hidden with `display: 'hidden'` in chapter metadata; its direct route and canonical source remain intact. The new 2.2.1 lesson is visible under the official 2.2 separator and linked from the overview.
 - Web Systems uses Nextra's article `bottomContent` for the minimal “Learn by AldenDerf” footer, keeping it within the sidebar's sticky container. The top navbar project action is removed; repository/edit links remain.
 - Verified lint, TypeScript, and production build (build required worker permissions after sandbox `spawn EPERM`); browser checks covered all six classroom routes plus the retained 2.2 route, desktop/light/dark reading and footer, mobile menu, and reflow at 320 px.
-- Next: restore the Chapter 2.2 metadata entry and overview link when the instructor reopens it next meeting. No Chapter 2.2 development is included in this update; unresolved original sources remain as documented below.
+- Next: review the 2.2.1 draft with the instructor, then prepare 2.2.2 separately. Unresolved original sources remain as documented below.
 
 - Local app: Next.js 15.3.9, Nextra 4.6.x, React 19.2.8, Tailwind 4, TypeScript strict, pnpm 11.25.0 in package.json at inspection.
 - Local `app/web-systems` and `app/sys-admin` contain existing uncommitted work and sample course structure. They have not been accepted as the authoritative ITE 303/ITM 402 syllabus.
