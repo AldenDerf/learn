@@ -1,0 +1,329 @@
+# Tutorial: Testing REST API Requests with Postman
+
+**ITE 303 - Web Systems and Technologies 2**
+
+**Supporting tutorial after 2.2.2 — new draft for instructor review**
+
+## What You Will Learn
+
+Postman will be our **client**. You will send GET, POST, PUT, and DELETE requests to one small Student Information API and explain:
+
+- what information you sent;
+- whether Express read it from `req.params`, `req.query`, or `req.body`;
+- what status, headers, and body the server returned; and
+- whether the server actually saved, changed, or removed anything.
+
+You already met HTTP messages in [P.2](/web-systems/chapter-2/http-requests-responses), traced them in [2.1.2](/web-systems/chapter-2/request-response-lifecycle), designed routes in [2.2.1](/web-systems/chapter-2/understanding-rest-api-design), and explored REST constraints in [2.2.2](/web-systems/chapter-2/rest-constraints-explained-simply). Here you will **see the messages** instead of only reading about them.
+
+## 1. One Request, One Response
+
+```text
+Postman (client)
+    | method + URL + optional headers/body
+    v
+Express server -> matching route handler
+    | status + headers + response body
+    v
+Postman (response viewer)
+```
+
+Postman lets you choose the method, URL, headers, and body. Express handles the request and sends the response. **Postman is neither the API nor the server.** Your Express program is the server in this exercise.
+
+Find these Postman controls: the **method** dropdown beside the **request URL**, **Params**, **Headers**, **Body**, and **Send**. After sending, find the **response status**, **response Headers**, and **response Body**. You need only these controls today.
+
+### Prepare a local practice project
+
+Use the Postman desktop app if it is already installed. The instructor should prepare the app and Node.js packages before an offline class. Postman's desktop app has a lightweight API client for local requests without a cloud workspace. Once installed, this tutorial uses only `localhost`; it needs no account, external API, or internet connection.
+
+Work in a **separate practice project**, so your [Lab 2.1](/web-systems/chapter-2/lab-2-1) submission remains intact. Use the same TypeScript and Express 5 setup from [2.1.1](/web-systems/chapter-2/first-express-server): `express`, `tsx`, TypeScript, and the Express/Node types, with the existing `pnpm dev` script. Make `src/server.ts` in that practice project. We will add one small route at a time to this **same file**.
+
+Start with this server:
+
+```typescript
+import express from 'express';
+
+const app = express();
+
+// Add the routes from Parts 1–6 here, above app.listen().
+
+app.listen(4000, () => {
+  console.log('Practice API: http://localhost:4000');
+});
+```
+
+Run `pnpm dev` in the practice project's PowerShell window. Leave it running while you send requests from Postman. If your server does not restart after a code edit, stop it with `Ctrl + C` and run `pnpm dev` again. A browser can show GET results, but Postman also lets you send a body and choose other methods.
+
+## 2. GET a Collection: `/students`
+
+**Simple idea:** GET usually asks for information. Add this route above `app.listen()`:
+
+```typescript
+app.get('/students', (req, res) => {
+  res.json({ message: 'Student information requested' });
+});
+```
+
+**Send it in Postman:** Choose **GET**, enter `http://localhost:4000/students`, and select **Send**. Leave Body empty.
+
+**Observe:** The response status is **200 OK**. The response Body contains `Student information requested`. In the response Headers, find `Content-Type` with `application/json` (it may include a charset). `res.json()` sent JSON; the response is more than its body.
+
+**What happened?** Postman sent `GET /students` → Express matched `app.get('/students', ...)` → the handler sent JSON → Postman displayed the status, headers, and body. The message demonstrates a request; it is not a stored student list.
+
+**Try it:** Change the method to **POST** while keeping the URL, then send. The GET handler does not handle POST. You will add the POST handler later. Return the method to GET.
+
+## 3. GET One Student: Route Parameters
+
+**Problem:** How can one route receive different student IDs? Add a second route:
+
+```typescript
+app.get('/students/:id', (req, res) => {
+  res.json({
+    message: 'Student requested',
+    studentId: req.params.id
+  });
+});
+```
+
+```text
+Request URL:  /students/3
+Route path:   /students/:id
+                         |
+Express:      req.params.id = "3"
+```
+
+**Send it:** Choose **GET** and enter `http://localhost:4000/students/3`. Select **Send**.
+
+**Observe:** Status **200 OK** and `studentId` equal to the text `"3"`. The `:id` placeholder matched the `3` in the path.
+
+**What happened?** Express put the path value in `req.params.id`. This example does **not** look up a student record.
+
+**Try it:** Change the URL to `/students/10`. Predict the new `studentId` before sending. Which part of the URL changed?
+
+## 4. GET with a Filter: Query Parameters
+
+**Problem:** We want to state which course we are asking about. **Replace** your first GET `/students` handler with this version; do not register a second GET handler for the same path:
+
+```typescript
+app.get('/students', (req, res) => {
+  const course = String(req.query.course ?? 'all courses');
+  res.json({ message: 'Student filter received', course });
+});
+```
+
+```text
+Request URL: /students?course=BSIT
+                       |
+Express:     req.query.course = "BSIT"
+```
+
+**Send it:** Choose **GET** and enter `http://localhost:4000/students`. In **Params**, enter key `course` and value `BSIT`; Postman adds `?course=BSIT` to the URL. Select **Send**.
+
+**Observe:** Status **200 OK** and `course` equal to `BSIT` in the response Body. The route remains `/students`; the text after `?` is the query, not part of the route path.
+
+**What happened?** Express read the filter from `req.query.course`. Compare it with `req.params.id`, which came from `/students/3`.
+
+**Try it:** Change `BSIT` to `BSCS` in Params and send again. Then remove the course parameter and find the `all courses` fallback. This server only echoes the filter; it does not filter saved records.
+
+## 5. POST: Send a JSON Body
+
+**Problem:** The course and ID fit in a URL, but a student's details are easier to send together as JSON. POST commonly sends information for the server to process.
+
+Before adding the POST route, add this line **once**, directly after `const app = express();` and before the routes:
+
+```typescript
+app.use(express.json());
+```
+
+`express.json()` reads a JSON request body and makes its parsed data available in `req.body`. Without this parsing middleware, JSON text does not automatically become `req.body` in this Express server.
+
+Now add the route above `app.listen()`:
+
+```typescript
+app.post('/students', (req, res) => {
+  const { name, course, year } = req.body ?? {};
+
+  if (typeof name !== 'string' || !name.trim() ||
+      typeof course !== 'string' || !course.trim() ||
+      typeof year !== 'number') {
+    return res.status(400).json({ message: 'name, course, and year are required' });
+  }
+
+  res.status(200).json({
+    message: 'Student data received; nothing was saved',
+    student: { name, course, year }
+  });
+});
+```
+
+**Send it:** Choose **POST**, enter `http://localhost:4000/students`, then choose **Body → raw → JSON**. Enter:
+
+```json
+{
+  "name": "Juan Dela Cruz",
+  "course": "BSIT",
+  "year": 3
+}
+```
+
+In request **Headers**, check that `Content-Type: application/json` is present. Postman normally adds it when raw **JSON** is selected. Select **Send**.
+
+```text
+Postman JSON body + Content-Type
+    -> HTTP request
+    -> express.json()
+    -> req.body
+    -> POST handler
+    -> HTTP response
+```
+
+**Observe:** Status **200 OK**, a JSON response body containing the values you sent, and a JSON `Content-Type` in the **response** Headers. The request header describes the data Postman sends; the response header describes what Express sends back.
+
+**What happened?** The handler read `req.body`, checked the three fields, and echoed them. **POST does not automatically save anything.** We use `200 OK` because this practice route only processes and echoes data. `201 Created` would claim a resource was created; use it when a real create operation succeeds, not merely because the method was POST.
+
+**Try it:** Change `year` to `4` and send again. Then remove `name` and send: the handler should return **400 Bad Request** with its error message. Restore `name` before continuing. A new GET request cannot retrieve your posted student because no student was stored.
+
+## 6. PUT: Identify a Target and Send Data
+
+**Simple idea:** PUT commonly asks the server to replace information for a named resource. The URL identifies **which** student; the JSON body says **what** information the client sent. Add:
+
+```typescript
+app.put('/students/:id', (req, res) => {
+  res.json({
+    message: 'Update request received; nothing was changed',
+    studentId: req.params.id,
+    updatedData: req.body
+  });
+});
+```
+
+```text
+PUT /students/3    -> req.params.id = "3"
+JSON request body  -> req.body
+```
+
+**Send it:** Choose **PUT**, enter `http://localhost:4000/students/3`, then use **Body → raw → JSON** with:
+
+```json
+{
+  "name": "Juan Dela Cruz",
+  "course": "BSIT",
+  "year": 4
+}
+```
+
+Check the request `Content-Type: application/json`, then select **Send**.
+
+**Observe:** Status **200 OK**. The response shows `studentId: "3"` and the data under `updatedData`.
+
+**What happened?** Express read the ID from `req.params` and the parsed JSON from `req.body`. **PUT does not automatically update a record.** This handler only acknowledges and echoes the request.
+
+**Try it:** Change the URL to `/students/10` without changing the body. Predict which response field changes.
+
+## 7. DELETE: Ask to Remove a Resource
+
+**Simple idea:** DELETE expresses a request to remove a resource. Add:
+
+```typescript
+app.delete('/students/:id', (req, res) => {
+  res.json({
+    message: 'Delete request received; nothing was removed',
+    studentId: req.params.id
+  });
+});
+```
+
+**Send it:** Choose **DELETE**, enter `http://localhost:4000/students/3`, leave Body empty, and select **Send**.
+
+**Observe:** Status **200 OK** and `studentId: "3"` in the response Body.
+
+**What happened?** The handler read the ID from the path and acknowledged the request. **DELETE does not automatically remove a record.** This project has no saved student records to delete.
+
+**Try it:** Send DELETE to `/students/10`. Does the response reflect the new ID? Send GET `/students/10` afterward; it still echoes the ID because neither route uses stored student data.
+
+## 8. Compare What You Sent
+
+In **our examples**, these are the common patterns:
+
+| Method | Client's intent | Example | Express reads |
+| --- | --- | --- | --- |
+| GET | Ask for information | `/students/3` | `req.params.id` |
+| GET | Ask with a filter | `/students?course=BSIT` | `req.query.course` |
+| POST | Send new data for processing | `/students` | `req.body` |
+| PUT | Send data for student 3 | `/students/3` | `req.params.id`, `req.body` |
+| DELETE | Ask to remove student 3 | `/students/3` | `req.params.id` |
+
+```text
+/students/3                 -> req.params.id (path)
+/students?course=BSIT       -> req.query.course (after ?)
+POST /students + JSON body  -> req.body (inside request)
+```
+
+**Quick classroom check:** Where does Express read `3` in `PUT /students/3`? Where does it read `BSIT` in `GET /students?course=BSIT`? Where does it read `name` from POST's JSON body?
+
+<details>
+<summary>Check the three locations</summary>
+
+`req.params.id`, `req.query.course`, and `req.body.name`, respectively.
+
+</details>
+
+## 9. Read the Whole Response
+
+Postman's response has a **status code**, **headers**, and a **body**. In this tutorial:
+
+| Status | Beginner meaning | Where you see it |
+| --- | --- | --- |
+| `200 OK` | The request succeeded. | The working routes above. |
+| `201 Created` | A new resource was created. | A later real create operation, **not** this echo-only POST route. |
+| `400 Bad Request` | The submitted data failed the route's check. | POST with a missing required field. |
+| `404 Not Found` | No route matched that URL and method. | Try GET `/does-not-exist`. |
+
+Send **GET** `http://localhost:4000/does-not-exist` and inspect the status. Your response body for 404 may vary because this small server has no custom 404 handler. The status still matters.
+
+In the **request Headers**, `Content-Type: application/json` tells Express the body is JSON. In the **response Headers**, a JSON content type tells Postman what Express sent. A status code or header does not prove that POST saved data, PUT updated it, or DELETE removed it. **The handler's behavior decides what happened.**
+
+## 10. Your Turn: A Small Transfer Challenge
+
+Without changing the one-file structure, sketch routes for a **books** resource: GET `/books`, GET `/books/:id`, POST `/books`, PUT `/books/:id`, and DELETE `/books/:id`. For each, write the method, one Postman request, whether data comes from `req.params`, `req.query`, or `req.body`, and a truthful response message. Then implement **one** route and test it locally. Keep responses as acknowledgements; do not add storage.
+
+<details>
+<summary>Check a possible route plan after you try</summary>
+
+GET `/books` needs no input; GET `/books/:id` and DELETE `/books/:id` read `req.params.id`; POST `/books` reads `req.body`; PUT `/books/:id` reads both. A POST response could say “Book data received; nothing was saved.”
+
+</details>
+
+## 11. Check Your Understanding
+
+1. What does GET usually ask the server to do?
+2. Where does Express get the `3` in `/students/3`? Where does it get `course=BSIT` after `?`?
+3. Where does POST's JSON body appear in Express, and why do we add `express.json()`?
+4. What does `PUT /students/3` identify? Which part carries the submitted changes?
+5. Does DELETE automatically remove student 3? Does POST automatically save a student?
+6. What does `201 Created` communicate? Why does our echo-only POST return 200 instead?
+7. Is Postman the server? What can you inspect besides the response body?
+
+<details>
+<summary>View concise answers</summary>
+
+1. Information.
+2. `req.params.id` from the path; `req.query.course` from the query.
+3. `req.body`; `express.json()` parses incoming JSON into that value.
+4. The URL identifies student 3; the JSON request body carries the submitted data.
+5. No. The server code must do that work, and these handlers only echo or acknowledge requests.
+6. It says a resource was created. This server creates none, so its successful POST uses `200 OK`.
+7. No, Postman is the client. Inspect status and response headers as well as the body.
+
+</details>
+
+## What Comes Next?
+
+Your `server.ts` now has GET, POST, PUT, and DELETE handlers in one file. It works for this exercise, but the file is getting longer. **What happens when an API becomes much larger?** The next lesson, **2.2.3 Separation of Concerns with Express**, will discuss organizing route and handler responsibilities. Do not refactor this practice server yet.
+
+### References
+
+- [Postman: send requests and inspect responses](https://learning.postman.com/docs/sending-requests/requests/)
+- [Postman: parameters and JSON bodies](https://learning.postman.com/docs/sending-requests/create-requests/parameters/)
+- [Postman: lightweight offline API client](https://learning.postman.com/v11/docs/getting-started/basics/using-api-client)
+- [Express: basic routing](https://expressjs.com/en/starter/basic-routing/)
+- [RFC 9110: HTTP status semantics](https://www.rfc-editor.org/rfc/rfc9110.html)

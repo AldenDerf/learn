@@ -27,7 +27,8 @@ const meta = {
     display: 'hidden'
   },
   'understanding-rest-api-design': '2.2.1 Understanding REST API Design',
-  'rest-constraints-explained-simply': '2.2.2 REST Constraints — Explained Simply'
+  'rest-constraints-explained-simply': '2.2.2 REST Constraints — Explained Simply',
+  'testing-rest-api-requests-with-postman': 'Tutorial: Testing REST API Requests with Postman'
 };
 
 export default meta;
