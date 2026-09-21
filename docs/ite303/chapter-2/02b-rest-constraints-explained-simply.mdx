@@ -1,0 +1,296 @@
+# 2.2.2 REST Constraints — Explained Simply
+
+**ITE 303 - Web Systems and Technologies 2**
+
+**Topic: 2.2 REST Constraints & Architectural Concerns**
+
+**New lesson draft for instructor review**
+
+## What You Will Learn
+
+By the end of this lesson, you should be able to:
+
+1. Explain REST as an architectural style in simple words.
+2. Name its six constraints and explain each with a small example.
+3. Connect the constraints to the Student Information API.
+4. Identify a constraint in a short scenario and correct common misunderstandings.
+5. Explain why Express, JSON, and clear routes alone do not prove full REST compliance.
+
+## Start with What You Know
+
+In [2.2.1 Understanding REST API Design](/web-systems/chapter-2/understanding-rest-api-design), you learned why `GET /students` is generally clearer than `GET /getStudents`:
+
+```text
+URL         = What resource?
+HTTP method = What action?
+```
+
+But is a clear route enough to make the whole API RESTful? **Not by itself.**
+
+Our question now is: **What makes an API RESTful beyond just having clear routes?**
+
+REST is an **architectural style**: a set of design boundaries, called **constraints**, for how parts of a networked system communicate. The constraints help us reason about a system beyond one Express route. Using Express, sending JSON, or choosing noun-based URLs alone does not show that the whole system follows REST.
+
+Here is the map. Learn each idea through the examples below; you do not need to memorize this table first.
+
+| Constraint | Simple idea |
+| --- | --- |
+| Client–Server | The client and server have separate jobs. |
+| Stateless | Each request carries the context needed to understand it. |
+| Cacheable | Responses communicate whether reuse is allowed. |
+| Uniform Interface | Components use consistent, meaningful communication rules. |
+| Layered System | A component need not see beyond the layer it talks to. |
+| Code on Demand **(optional)** | A server may send executable code to a client. |
+
+## 1. Client–Server: Separate Jobs
+
+Imagine a page that displays student information. The page handles what the student sees and clicks. The API server handles the request and prepares student information.
+
+```text
+Browser or mobile app
+        | GET /students
+        v
+     API server
+        | response
+        v
+Browser or mobile app
+```
+
+They agree on how to communicate. Changing the page's background color should not normally require an API change. The server could change how it prepares a response without changing the client-facing agreement.
+
+**Quick check:** If the page changes from a list to cards, must `GET /students` change?
+
+<details>
+<summary>Check your answer</summary>
+
+Usually no. The client can change its presentation while continuing to use the same API response.
+
+</details>
+
+## 2. Stateless: Make Each Request Understandable
+
+Suppose a client first tells the server, “Remember that I selected BSIT.” Later it asks, “Give me the students from the course I selected.” The second request depends on a hidden detail from the first request.
+
+Compare that with:
+
+```http
+GET /students?course=BSIT
+```
+
+The filter is included in the request that needs it. **Stateless** means each request carries the information needed to understand and process that request, without depending on saved conversation context from an earlier request. This can make requests easier to handle independently.
+
+Stateless **does not mean** no database, no stored student records, or no authentication. A system can store resource data. The key question is whether the server must remember earlier client conversation to interpret the current request. Using an in-memory array would not prove statelessness either.
+
+In [Lab 2.1](/web-systems/chapter-2/lab-2-1), `GET /students?course=BSIT` already carries its filter. The lab's POST route receives and echoes data; it does not save a student.
+
+**Quick check:** Which request is easier to understand on its own: “show the course I chose earlier” or `GET /students?course=BSIT`?
+
+<details>
+<summary>Check your answer</summary>
+
+`GET /students?course=BSIT`, because the requested course is present in this request.
+
+</details>
+
+## 3. Cacheable: Say Whether Reuse Is Allowed
+
+Imagine many clients asking for the same public, rarely changing course list. Must every response be prepared and sent from scratch? Sometimes an earlier response can be reused. That can reduce repeated work and network traffic, and may improve response time.
+
+The **cacheable** constraint says a response should communicate whether it can be reused and under what rules. For a hypothetical public Student Information API response, a server might send:
+
+```http
+Cache-Control: public, max-age=60
+```
+
+This allows shared caching and says the response can be treated as fresh for 60 seconds. A response that should not be stored might use:
+
+```http
+Cache-Control: no-store
+```
+
+These are examples, not headers already implemented in Lab 2.1. Sensitive or fast-changing student information needs a suitable policy; do not assume every response should be cached. You do not need to memorize the directives yet. `no-cache` has a different meaning from `no-store`; it does not simply mean “never store.”
+
+**Quick check:** Why might a student's private information need different caching rules from a public course list?
+
+<details>
+<summary>Check your answer</summary>
+
+The information has different privacy and freshness needs. The response should communicate the appropriate reuse rules.
+
+</details>
+
+## 4. Uniform Interface: Shared Communication Rules
+
+This is the closest connection to 2.2.1. You planned resource-oriented routes:
+
+```text
+GET  /students
+GET  /students/3
+POST /students
+```
+
+The resource has a clear identifier. The method and path help describe the request. The response can carry a **representation**: information about the resource, such as JSON about student 3. Consistent rules make the interface easier for different clients to understand.
+
+But the formal **Uniform Interface** constraint is broader than noun-based paths. It includes:
+
+```text
+Identify resources consistently
+Exchange representations of resources
+Make messages understandable on their own
+Provide discoverable next actions through hypermedia
+```
+
+The last idea is often called **HATEOAS**. In simple terms, a representation can tell a client about relevant next actions through meaningful links. We will not implement that here. Adding an arbitrary `links` field by itself would not prove that the client can discover and use the API through hypermedia.
+
+Our classroom Student Information API demonstrates some useful route and message conventions. That alone is not enough to claim that it satisfies the entire Uniform Interface constraint or all of REST.
+
+**Quick check:** Does renaming `/getStudents` to `/students` prove the whole API is RESTful?
+
+<details>
+<summary>Check your answer</summary>
+
+No. It improves one route convention. REST asks about the whole system's communication constraints.
+
+</details>
+
+## 5. Layered System: Intermediaries Can Exist
+
+A client may send a request through another component before it reaches the API server:
+
+```text
+Client
+  |
+  v
+Gateway or proxy
+  |
+  v
+API server
+  |
+  v
+Storage
+```
+
+The client does not need to know every internal component involved. A component interacts through the layer it can see, without needing to see beyond it. A gateway or proxy is one possible intermediary; our classroom API does not need one to understand the idea.
+
+This is different from organizing Express code into `routes/`, `controllers/`, and `services/` folders. Those folders divide code inside one application. REST's **Layered System** constraint concerns interactions between components, not folder names.
+
+**Quick check:** Does creating route, controller, and service folders prove that the API follows REST's Layered System constraint?
+
+<details>
+<summary>Check your answer</summary>
+
+No. Code organization and the interaction between network components are different questions.
+
+</details>
+
+## 6. Code on Demand: Optional
+
+This REST constraint is **optional**. A server may send executable code that extends what a client can do. A familiar example is JavaScript sent to a browser to run there.
+
+Ordinary JSON student data is **not** code on demand. The Student Information API in Lab 2.1 does not need code on demand for its exercise.
+
+## One Mental Model
+
+```text
+Client–Server   -> separate jobs
+Stateless       -> each request carries needed context
+Cacheable       -> state the rules for response reuse
+Uniform        -> communicate through consistent, meaningful rules
+Layered        -> interact through component boundaries
+Code on Demand -> optionally send executable code
+```
+
+## REST: Common Misunderstandings
+
+| Claim | Better explanation |
+| --- | --- |
+| “We use Express, so the API is RESTful.” | Express is a tool. The architecture still needs to be examined. |
+| “We return JSON, so the API is RESTful.” | JSON is one data format, not proof of REST constraints. |
+| “We use `GET /students`, so the whole system is RESTful.” | A clear route is useful, but it shows only part of the design. |
+| “Stateless means no database.” | Stored resource data is allowed; hidden request conversation context is the concern. |
+| “Layered System means we made controller folders.” | Network component layers differ from folders within one server. |
+| “JSON is code on demand.” | JSON data is not executable code sent for the client to run. |
+
+## Guided Practice: Name the Constraint
+
+Think before opening the answers.
+
+1. A request includes its course filter instead of relying on a previous request.
+2. A browser calls the API without knowing a reverse proxy is between them.
+3. A response says it may be reused for 60 seconds.
+4. A developer uses resource identifiers and consistent HTTP message meanings.
+
+<details>
+<summary>Check the scenarios</summary>
+
+1. Stateless.
+2. Layered System.
+3. Cacheable.
+4. Uniform Interface. This example covers part of that constraint, not all of it.
+
+</details>
+
+## Your Turn: Examine a Library API
+
+Recall the Library API you planned in 2.2.1:
+
+```text
+GET /books
+GET /books/10
+GET /books?author=Reyes
+```
+
+Write one or two sentences for each question. This is a design discussion; you do not need to build a server.
+
+1. If a website displays the books, which job belongs to the client and which to the API server?
+2. How does the author-filter request avoid depending on a previous request?
+3. When could a public book list be reused? When might reuse be a poor choice?
+4. What makes these resource routes predictable? What additional ideas belong to the formal Uniform Interface constraint?
+5. Could a gateway sit between the client and server? Would rearranging Express folders prove that constraint?
+6. If the server sends book data as JSON, is that code on demand?
+
+<details>
+<summary>Compare your reasoning after you try</summary>
+
+1. The client displays and interacts with the list; the API server handles requests and prepares book information.
+2. `author=Reyes` is included in the request itself.
+3. A public, stable list could have a reuse policy. Private or fast-changing information might need different rules.
+4. The paths identify the collection and one book consistently. Formal Uniform Interface also concerns representations, self-descriptive messages, and hypermedia-driven next actions.
+5. Yes, a gateway could be an intermediary. Folder organization alone does not prove REST layering.
+6. No. JSON book data is information, not executable code.
+
+</details>
+
+## Check Your Understanding
+
+1. A mobile app can change its display while using the same student API contract. Which constraint does this illustrate?
+2. Explain statelessness using `GET /students?course=BSIT`. Does it forbid a database?
+3. Why does returning JSON alone not make an API RESTful?
+4. A response states whether it may be reused. Which constraint is this?
+5. Why are `routes/` and `services/` folders different from REST's Layered System?
+6. Which constraint is optional? Does Lab 2.1's JSON response demonstrate it?
+7. How does 2.2.1 connect to Uniform Interface, and what does 2.2.1 not cover by itself?
+
+<details>
+<summary>View the concise answers</summary>
+
+1. Client–Server.
+2. The course filter travels with this request; the server need not remember an earlier course selection. A database is allowed.
+3. JSON is a representation format. REST includes wider communication constraints.
+4. Cacheable.
+5. Those folders organize code inside one application. Layered System concerns interactions between components.
+6. Code on Demand is optional. JSON data is not executable code.
+7. Clear resource identifiers and consistent methods help build a uniform interface. Uniform Interface also covers representations, self-descriptive messages, and hypermedia-driven transitions.
+
+</details>
+
+## Recap and Next Step
+
+In **2.2.1**, you designed clear resource-oriented API routes. In **2.2.2**, you learned the broader REST constraints and why one route, Express, or JSON cannot establish the whole architecture.
+
+Next comes **2.2.3 Separation of Concerns with Express**. Our API design is becoming clearer. But what happens when all of our Express code is inside one large file?
+
+### References
+
+- [Roy Fielding, REST architectural style](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)
+- [RFC 9111, HTTP Caching](https://www.rfc-editor.org/rfc/rfc9111.html)

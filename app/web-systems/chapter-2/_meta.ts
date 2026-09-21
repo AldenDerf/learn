@@ -26,7 +26,8 @@ const meta = {
     title: 'Legacy / Instructor Reference: 2.2 REST Constraints & Architectural Concerns',
     display: 'hidden'
   },
-  'understanding-rest-api-design': '2.2.1 Understanding REST API Design'
+  'understanding-rest-api-design': '2.2.1 Understanding REST API Design',
+  'rest-constraints-explained-simply': '2.2.2 REST Constraints — Explained Simply'
 };
 
 export default meta;

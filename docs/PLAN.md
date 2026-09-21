@@ -43,15 +43,18 @@ Keep existing full Foundation handouts intact. The application may use PostgreSQ
 - [x] Implement 2.2.1 Understanding REST API Design as a new instructor-review draft, with canonical MDX material, a thin route wrapper, and a visible entry under the official 2.2 topic heading. Keep the combined 2.2 material hidden as a legacy reference.
 - Verification: `pnpm lint`, `pnpm exec tsc --noEmit`, and `pnpm build` passed (the build needed worker permission after sandbox `spawn EPERM`). Production HTTP requests returned 200 for the new lesson, chapter overview, Lab 2.1, and legacy 2.2 route; the lesson title, library activity, and overview link appeared in rendered HTML. Browser visual, mobile, keyboard, and console checks remain unverified because no browser was available.
 - Next: instructor review of 2.2.1, then 2.2.2 REST Constraints — Explained Simply. Do not treat all of topic 2.2 as complete. Original Chapter 2 sources remain unresolved.
+- [x] Implement 2.2.2 REST Constraints — Explained Simply as a new instructor-review draft, following 2.2.1. Keep the combined 2.2 source hidden as a legacy reference; topic 2.2 is not fully complete.
+- 2.2.2 verification: `pnpm lint`, `pnpm exec tsc --noEmit`, and `pnpm build` passed (the sandbox build hit worker `spawn EPERM`; the permitted rerun passed). Production HTTP requests returned 200 for 2.2.2, 2.2.1, Lab 2.1, the chapter overview, and the legacy 2.2 route. Rendered HTML included all six constraint sections, answer reveals, the overview link, and 2.2.1 before 2.2.2 in navigation; the legacy entry retained `display: 'hidden'`. Browser visual, mobile, keyboard, and console checks remain unverified because no browser was available.
+- Next: instructor review of 2.2.2, then 2.2.3 Separation of Concerns with Express. Original Chapter 2 sources remain unresolved.
 
 ## Known baseline and content sources
 
 ### Temporary Chapter 2.2 visibility and portal layout
 
-- The combined Chapter 2.2 lesson remains hidden with `display: 'hidden'` in chapter metadata; its direct route and canonical source remain intact. The new 2.2.1 lesson is visible under the official 2.2 separator and linked from the overview.
+- The combined Chapter 2.2 lesson remains hidden with `display: 'hidden'` in chapter metadata; its direct route and canonical source remain intact. Lessons 2.2.1 and 2.2.2 are visible under the official 2.2 separator and linked from the overview.
 - Web Systems uses Nextra's article `bottomContent` for the minimal “Learn by AldenDerf” footer, keeping it within the sidebar's sticky container. The top navbar project action is removed; repository/edit links remain.
 - Verified lint, TypeScript, and production build (build required worker permissions after sandbox `spawn EPERM`); browser checks covered all six classroom routes plus the retained 2.2 route, desktop/light/dark reading and footer, mobile menu, and reflow at 320 px.
-- Next: review the 2.2.1 draft with the instructor, then prepare 2.2.2 separately. Unresolved original sources remain as documented below.
+- Next: review the 2.2.2 draft with the instructor, then prepare 2.2.3 separately. Unresolved original sources remain as documented below.
 
 - Local app: Next.js 15.3.9, Nextra 4.6.x, React 19.2.8, Tailwind 4, TypeScript strict, pnpm 11.25.0 in package.json at inspection.
 - Local `app/web-systems` and `app/sys-admin` contain existing uncommitted work and sample course structure. They have not been accepted as the authoritative ITE 303/ITM 402 syllabus.
