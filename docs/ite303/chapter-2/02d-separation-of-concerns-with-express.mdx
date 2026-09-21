@@ -1,0 +1,286 @@
+# 2.2.3 Separation of Concerns with Express
+
+**ITE 303 - Web Systems and Technologies 2**
+
+**New draft for instructor review**
+
+## What You Will Learn
+
+By the end, you can explain why a growing `server.ts` becomes hard to manage, trace a request through a router and controller, and reorganize the [Postman tutorial's Student Information API](/web-systems/chapter-2/testing-rest-api-requests-with-postman) without changing its public endpoints.
+
+## 1. The Server That Grew
+
+At the end of the Postman tutorial, our working `src/server.ts` had several routes:
+
+```typescript
+app.get('/students', ...);
+app.get('/students/:id', ...);
+app.post('/students', ...);
+app.put('/students/:id', ...);
+app.delete('/students/:id', ...);
+```
+
+**This works. So what is the problem?** Five routes are manageable. Imagine 20, 50, or 100 routes for students, courses, teachers, subjects, and enrollments. Finding one handler or understanding where a request goes would take longer. Working code can become difficult to organize and maintain as it grows; the current code is not wrong.
+
+Imagine a school office where one person receives every request, decides where it goes, processes it, and prepares every response. That can work with a few requests. As the workload grows, clear responsibilities help. Our one-file Express server has a similar organization problem.
+
+**Separation of Concerns** means giving different parts of our program different responsibilities. For this project, we will use three parts:
+
+```text
+Request -> server.ts -> studentRoutes -> studentController -> Response
+```
+
+| Part | Responsibility in our Express project |
+| --- | --- |
+| `server.ts` | Create and configure the app, register middleware, mount routes, and start listening. |
+| `routes/studentRoutes.ts` | Match an HTTP method and path to a handler. |
+| `controllers/studentController.ts` | Read the request, handle it, and send the response. |
+
+This is the responsibility split we are using here, not a rule that every application must follow.
+
+## 2. Move One Handler First
+
+Work in the **separate `student-api` practice project** from the Postman tutorial, with its existing Express 5, TypeScript, `tsx`, and `pnpm dev` setup. Leave your Lab 2.1 submission intact. Keep the existing one-file server available for comparison. It already has `express.json()` above the routes and returns acknowledgements rather than stored data.
+
+1. Look at the current `src/server.ts`. Find the GET `/students` handler that reads `req.query.course`.
+2. Create `src/controllers/`, then create `src/controllers/studentController.ts`.
+3. Move only that handler's logic into an exported function:
+
+```typescript
+import type { Request, Response } from 'express';
+
+export function getStudents(req: Request, res: Response) {
+  const course = String(req.query.course ?? 'all courses');
+  res.json({ message: 'Student filter received', course });
+}
+```
+
+The query still comes from `req.query.course`. It is not a new endpoint, and no student records are filtered or stored.
+
+4. Create `src/routes/`, then `src/routes/studentRoutes.ts`:
+
+```typescript
+import { Router } from 'express';
+import { getStudents } from '../controllers/studentController';
+
+const router = Router();
+
+router.get('/', getStudents);
+
+export default router;
+```
+
+The **route** asks, “When GET arrives at this path, which function handles it?” The **controller** asks, “What happens when that request is handled?” A memory aid for *our project*: **route = where it goes; controller = what happens**.
+
+5. In `src/server.ts`, import the router and replace the old `app.get('/students', ...)` with the mount. Keep the other four `app.get`, `app.post`, `app.put`, and `app.delete` handlers temporarily, and keep `express.json()` before them:
+
+```typescript
+import express from 'express';
+import studentRoutes from './routes/studentRoutes';
+
+const app = express();
+app.use(express.json());
+
+app.use('/students', studentRoutes);
+
+// Keep the other existing student handlers here for this first test.
+
+app.listen(4000, () => {
+  console.log('Practice API: http://localhost:4000');
+});
+```
+
+The comment above stands for the four handlers already in your file; do not delete them yet. `server.ts` now says requests beginning with `/students` belong to `studentRoutes`. It does not need to know the GET handler's details. The router contains `router.get('/')`, so the mounted URL is **GET `/students`**. Its `req.query.course` also handles **GET `/students?course=BSIT`**; a query string does not require another route.
+
+6. Run `pnpm dev`, then send GET `/students` and GET `/students?course=BSIT` in Postman. Compare the status and JSON with your earlier results. If your setup does not restart after an edit, stop the server with `Ctrl + C` and run `pnpm dev` again. Only continue after these requests work.
+
+## 3. Move the Remaining Handlers
+
+Now move the logic for GET by ID, POST, PUT, and DELETE into the **same** controller file. These functions preserve the Postman tutorial's messages, status codes, and request data. Add them below `getStudents`:
+
+```typescript
+export function getStudentById(req: Request, res: Response) {
+  res.json({ message: 'Student requested', studentId: req.params.id });
+}
+
+export function createStudent(req: Request, res: Response) {
+  const { name, course, year } = req.body ?? {};
+
+  if (typeof name !== 'string' || !name.trim() ||
+      typeof course !== 'string' || !course.trim() ||
+      typeof year !== 'number') {
+    return res.status(400).json({ message: 'name, course, and year are required' });
+  }
+
+  res.status(200).json({
+    message: 'Student data received; nothing was saved',
+    student: { name, course, year }
+  });
+}
+
+export function updateStudent(req: Request, res: Response) {
+  res.json({
+    message: 'Update request received; nothing was changed',
+    studentId: req.params.id,
+    updatedData: req.body
+  });
+}
+
+export function deleteStudent(req: Request, res: Response) {
+  res.json({
+    message: 'Delete request received; nothing was removed',
+    studentId: req.params.id
+  });
+}
+```
+
+Now complete `src/routes/studentRoutes.ts` by replacing its earlier import and route lines with these:
+
+```typescript
+import { Router } from 'express';
+import {
+  getStudents,
+  getStudentById,
+  createStudent,
+  updateStudent,
+  deleteStudent
+} from '../controllers/studentController';
+
+const router = Router();
+
+router.get('/', getStudents);
+router.get('/:id', getStudentById);
+router.post('/', createStudent);
+router.put('/:id', updateStudent);
+router.delete('/:id', deleteStudent);
+
+export default router;
+```
+
+Remove the four old handlers from `server.ts` after their controller and router connections are in place. Its complete final content is the short `server.ts` shown in Step 5, without the temporary comment. `app.use(express.json())` must stay before the route mount so POST and PUT can read JSON in `req.body`.
+
+### How the URL is assembled
+
+```text
+app.use('/students', studentRoutes)   mount path
+router.get('/:id', getStudentById)   router path
+----------------------------------
+GET /students/:id                    public endpoint
+```
+
+The router's `/` means the mounted root `/students`; its `/:id` adds an ID after `/students`. Do **not** repeat `/students` inside the router, or you could create `/students/students/:id`.
+
+Trace one request:
+
+```text
+Postman: GET /students/3
+    |
+    v
+server.ts: /students -> studentRoutes
+    |
+    v
+studentRoutes: GET /:id -> getStudentById
+    |
+    v
+studentController: reads req.params.id and sends JSON
+    |
+    v
+Postman: response
+```
+
+`server.ts` sends the request to the correct router. The router selects the controller function. The controller handles the request and sends the response. `3` reaches the controller as `req.params.id`; no record lookup occurs.
+
+### Before and after
+
+| Before: one `server.ts` | After: three focused files |
+| --- | --- |
+| Middleware, five student handlers, and server startup | `server.ts`: setup, middleware, route mounting, startup |
+| All method/path decisions and response logic together | `studentRoutes.ts`: method/path to function mapping |
+| | `studentController.ts`: request-handling logic |
+
+The application behavior did not need to change. We changed the **organization** of the code. This is **refactoring**: improving code structure without intentionally changing what the program does.
+
+Your practice project should now look like:
+
+```text
+student-api/
+├── src/
+│   ├── controllers/
+│   │   └── studentController.ts
+│   ├── routes/
+│   │   └── studentRoutes.ts
+│   └── server.ts
+├── package.json
+└── tsconfig.json
+```
+
+## 4. Use Postman as a Safety Check
+
+Send the **same requests** you tested before the refactor. Compare status, response headers, and JSON body. The routes should behave the same:
+
+| Postman request | Check after refactoring |
+| --- | --- |
+| GET `/students` | `course: "all courses"` |
+| GET `/students/3` | `studentId: "3"` |
+| GET `/students?course=BSIT` | `course: "BSIT"` from `req.query.course` |
+| POST `/students` with the tutorial's valid JSON | `200` and “nothing was saved”; missing `name` still gives `400` |
+| PUT `/students/3` with JSON | ID and submitted body; “nothing was changed” |
+| DELETE `/students/3` | ID; “nothing was removed” |
+
+The public endpoints and responses stay the same while their internal organization changes. This API has **no database or persistent CRUD**. POST only receives data, PUT only acknowledges the requested update, and DELETE only acknowledges the requested removal.
+
+## 5. If Something Does Not Work
+
+| Symptom | Check |
+| --- | --- |
+| `Cannot find module './routes/studentRoutes'` | Is the file in `src/routes/` beside `src/server.ts`? Did you type the path and capitalization correctly? |
+| The router import fails | Did `studentRoutes.ts` end with `export default router`? |
+| GET `/students` returns 404 | Did `server.ts` mount `app.use('/students', studentRoutes)`? |
+| `/students/3` returns 404 but `/students/students/3` works | Use `router.get('/:id', ...)`, because `/students` is already the mount path. |
+| Old response appears after editing | If your development process did not restart automatically, stop it with `Ctrl + C` and rerun `pnpm dev`. |
+
+## 6. Quick Check
+
+1. Why did we split `server.ts`?
+2. What does `studentRoutes` decide?
+3. What does `studentController` do?
+4. What public endpoint results from `app.use('/students', studentRoutes)` and `router.get('/:id', getStudentById)`?
+5. Where is `req.params.id` normally read in our new structure?
+6. Did refactoring change the public endpoint?
+7. What is refactoring?
+8. Why have we not added another layer yet?
+
+<details>
+<summary>Reveal concise answers</summary>
+
+1. One file becomes harder to navigate as routes and resource types grow.
+2. Which controller function handles a method and path.
+3. It reads request data, performs this example's handling, and sends a response.
+4. GET `/students/:id`, such as GET `/students/3`.
+5. In `getStudentById` (or another controller handling an ID).
+6. No. The same Postman URLs still work.
+7. Improving code structure without intentionally changing behavior.
+8. These three responsibilities solve the problem we have now; this practice API has no additional data work to separate.
+
+</details>
+
+## 7. Small Practice: Books
+
+Optionally revisit the Postman tutorial's small books challenge. Put method/path mappings in `src/routes/bookRoutes.ts` and request-handling functions in `src/controllers/bookController.ts`. Start with GET `/books` and GET `/books/:id`; then map the existing POST, PUT, and DELETE ideas if time allows. Mount at `/books` in `server.ts`, test one request in Postman, and keep every response truthful about having no saved data. Which lines answer “where does this request go,” and which answer “what happens”?
+
+<details>
+<summary>Check one possible split</summary>
+
+`router.get('/:id', getBookById)` belongs in the router. A `getBookById` function that reads `req.params.id` and sends JSON belongs in the controller. Mounting at `/books` gives GET `/books/:id`.
+
+</details>
+
+## What Comes Next?
+
+You should now be able to explain `server.ts` as app setup, routes as method/path mapping, and controllers as request-handling logic. **Lab 2.2** will ask you to apply that split independently. The lab is a later activity; it is not part of this lesson.
+
+### References
+
+- [Express: routing and `Router`](https://expressjs.com/en/guide/routing.html)
+- [Express: middleware](https://expressjs.com/en/guide/using-middleware.html)
+- [Previous Postman tutorial](/web-systems/chapter-2/testing-rest-api-requests-with-postman)
