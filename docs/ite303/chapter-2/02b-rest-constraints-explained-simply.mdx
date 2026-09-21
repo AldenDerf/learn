@@ -28,6 +28,8 @@ You can create a route. But as an application grows, **how should the client and
 
 **REST is a way to design how parts of a web system communicate.** Software engineers call it an *architectural style*. That means a set of design boundaries, or **constraints**, for the system as a whole. REST is not a programming language, Express, or JSON. We will discover its six constraints through the same Student Information API.
 
+For the two command-line experiments, use your **separate Lab 2.1 project**, not the Learn portal's source code. Start its server with `pnpm dev` in one PowerShell window and run `curl.exe` in another. Lab 2.1 uses port **4000**. Keep your existing routes; add the small `/courses` route below only when you reach the caching experiment.
+
 ## 1. Different Jobs
 
 Imagine changing the color of a student card on the page. Should that require a change to the API server? Usually no. The page decides how to display information; the server answers requests for information.
@@ -50,6 +52,20 @@ This separation is the **Client–Server** constraint. Remember: **different job
 Usually no. The client can present the same information differently while keeping the API agreement.
 
 </details>
+
+### Mini hands-on: trace one request
+
+**Goal:** Find each side's job in a request you already know. **Example:** `GET /students`.
+
+**Run it:** With your Lab 2.1 server running, use a second PowerShell window:
+
+```powershell
+curl.exe -i http://localhost:4000/students
+```
+
+**Observe:** Find the HTTP response in the client window. Your Express server's route handler prepared it; the client receives and displays it. Trace: client → HTTP request → Express server → route handler → HTTP response → client. Which side would display the app's interface? Which side processes this API request?
+
+**What just happened?** The client sent a request and displayed the result. The server processed the API request. This illustrates their different jobs under **Client–Server**; you already traced the request lifecycle in 2.1.2.
 
 ## 2. What If Another Server Gets the Next Request?
 
@@ -83,6 +99,28 @@ This idea is called **Stateless**: each request carries the information needed t
 **Stateless does not mean the server cannot save anything.** A database may store a fact such as “Student Juan belongs to BSIT.” That is student information. The problem above is different: the server must remember *which course this client chose earlier* just to understand the next request. Authentication is not automatically incompatible with statelessness either; needed request context can be supplied with a request.
 
 Remember: **do not make the next request depend on a hidden previous conversation.** An in-memory student array alone would not prove that requests are stateless.
+
+### Mini hands-on: send the course each time
+
+**Goal:** See where the handler gets the course. Your Lab 2.1 GET `/students` route already reads `req.query.course`. Its central idea is:
+
+```typescript
+app.get('/students', (req, res) => {
+  const course = String(req.query.course ?? 'all courses');
+  res.json({ message: 'Student information request', course });
+});
+```
+
+This is a reminder of the existing lab route, **not a second handler to register**. Use your working version and run:
+
+```powershell
+curl.exe "http://localhost:4000/students?course=BSIT"
+curl.exe "http://localhost:4000/students?course=BSCS"
+```
+
+**Observe:** The `course` value in the JSON response changes from `BSIT` to `BSCS`. **How did the server know which one you wanted?**
+
+**What just happened?** Each request included its own course value. The handler did not need to remember the previous selection to answer this request. That illustrates a self-contained request and the **Stateless** idea. This one route does **not** prove that the entire application satisfies REST's stateless constraint.
 
 **Think:** A client first says “Remember BSIT,” then later says “Show my course's students.” What could go wrong? How would you change the second request?
 
@@ -130,6 +168,27 @@ These headers are **examples**, not features of Lab 2.1. A public, rarely changi
 
 Remember: **can I safely reuse an earlier response?**
 
+### Mini hands-on: inspect a caching rule
+
+**Goal:** See a response *communicate* its reuse rule. In your Lab 2.1 `src/server.ts`, add this small route **before the final 404 fallback**. Do not replace the existing student routes.
+
+```typescript
+app.get('/courses', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=60');
+  res.json({ courses: ['BSIT', 'BSCS'] });
+});
+```
+
+**Run it:** Restart `pnpm dev` if needed. In a second PowerShell window:
+
+```powershell
+curl.exe -i http://localhost:4000/courses
+```
+
+**Observe:** Find `Cache-Control: public, max-age=60` among the response headers, above the JSON body. Header capitalization may vary. Do not expect `curl.exe` to demonstrate a browser cache.
+
+**What just happened?** The Express route sent a rule about whether an earlier response may be reused. That is the part of **Cacheable** this experiment shows. It does not build or test a complete cache. For a comparison, change the header value to `no-store`, run the same command again, and find the changed header. Restore or remove this temporary route after the experiment if you want your Lab 2.1 submission to match its original contract.
+
 **Think:** A public course list is requested 20 times in one minute and has not changed. What could reduce repeated work? Would you automatically apply the same rule to private student information?
 
 <details>
@@ -172,6 +231,33 @@ Both follow one resource pattern: `/students` for the collection and `/students/
 
 </details>
 
+### Mini activity: redesign, then compare
+
+**Goal:** Make an API easier for another developer to predict. **Example to improve:**
+
+```text
+GET  /getStudents
+GET  /getStudentById/3
+POST /createStudent
+```
+
+**Try it:** Write three clearer method-and-path pairs before opening the answer. No server change is needed.
+
+**Observe:** Can you guess the individual-student route after seeing the collection route? Which version uses fewer special action names?
+
+<details>
+<summary>Compare one possible redesign</summary>
+
+```text
+GET  /students
+GET  /students/3
+POST /students
+```
+
+</details>
+
+**What just happened?** The resource paths follow one pattern, while the methods express the requested actions. That is easier to predict and illustrates **part of Uniform Interface**. It does not establish the full formal constraint described in the Going Further note.
+
 ### Going Further: REST Is Deeper Than Route Naming
 
 The formal Uniform Interface also involves identifying resources, working with them through representations, self-descriptive messages, and **hypermedia-driven transitions**. The last idea is often called HATEOAS: a response can guide a client toward meaningful next actions. You do not need to implement or memorize HATEOAS in this lesson. An arbitrary `links` field alone does not prove that an API follows the formal constraint.
@@ -192,11 +278,15 @@ The client does not need to know every internal component. Each component commun
 
 Putting Express files in `routes/`, `controllers/`, or `services/` folders organizes code *inside one application*. Those folders do not, by themselves, prove REST's Layered System constraint. We will discuss code organization in 2.2.3.
 
+**Mini reasoning activity — goal:** Trace who knows what. Follow `Client → Gateway → API server` in the diagram. Does the client need to know how every internal component works? **Observe:** The client sends a request without needing to know how the gateway forwards it. **What just happened?** The client communicates through its visible boundary. This illustrates **Layered System**; no proxy setup is required.
+
 ## 6. Can the Server Send Code to Run?
 
 A server may send executable code to extend what a client can do. JavaScript sent to a browser is a familiar example. This is **Code on Demand**, an **optional** REST constraint. Remember: **the server may optionally send code to run.**
 
 Ordinary JSON student data is not executable code. Lab 2.1 does not need Code on Demand.
+
+**Quick comparison:** JSON about a student is data. JavaScript delivered for a browser to run is code. No new code or command is needed for this optional constraint.
 
 ## REST in One Story
 
