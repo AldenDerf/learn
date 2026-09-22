@@ -1,0 +1,532 @@
+# Lab 2.2 — Separating Routes and Controllers in Express.js
+
+**ITE 303 — Web Systems and Technologies 2**
+
+**Topic: 2.2 REST Constraints & Architectural Concerns**
+
+**Laboratory activity — New draft for instructor review**
+
+## Overview
+
+In lesson 2.2.3, you saw how a growing Student Information API was reorganized by separating routes from controllers. Now you will apply that same architecture independently to a different resource: **Courses**.
+
+You are given a working, single-file Express server. Your task is to refactor it into dedicated route and controller modules without changing its public endpoints or response behavior.
+
+This activity assesses your ability to apply **Separation of Concerns in Express.js**:
+- Keep `server.ts` focused on application configuration, middleware, and route mounting.
+- Define HTTP method and path mappings in an Express Router (`courseRoutes.ts`).
+- Isolate request handling and response logic in controller functions (`courseController.ts`).
+- Verify that refactored endpoints behave identically using Postman.
+
+## Learning Outcomes
+
+By completing this lab, you should be able to:
+
+1. Identify mixed responsibilities in a single-file Express server.
+2. Structure a backend project into `routes/`, `controllers/`, and `server.ts`.
+3. Create and export controller functions with typed `Request` and `Response` objects.
+4. Create an Express `Router` and map HTTP methods and paths to controller functions.
+5. Mount a router in `server.ts` using `app.use()`.
+6. Explain how route mounting combines the base path and router path into a public endpoint.
+7. Access request data correctly using `req.params`, `req.query`, and `req.body`.
+8. Verify refactored endpoints locally using Postman.
+9. Trace an incoming HTTP request through `server.ts`, the router, the controller, and back to the client.
+
+## Before You Begin
+
+Review these previous lessons before starting:
+
+- [2.2.1 Understanding REST API Design](/web-systems/chapter-2/understanding-rest-api-design)
+- [2.2.2 REST Constraints — Explained Simply](/web-systems/chapter-2/rest-constraints-explained-simply)
+- [Tutorial: Testing REST API Requests with Postman](/web-systems/chapter-2/testing-rest-api-requests-with-postman)
+- [2.2.3 Separation of Concerns with Express](/web-systems/chapter-2/separation-of-concerns-with-express)
+
+You need Node.js, pnpm, a code editor, PowerShell, and Postman installed on your machine. All tests run locally on `http://localhost:4000`. No cloud deployment or database setup is required.
+
+## The Scenario
+
+A university department wants a simple **Course API** to look up courses, filter courses by academic program, and accept updates.
+
+The department's developer wrote a complete, working version in one file: `src/server.ts`. The API already handles all five required HTTP operations. However, having route matching, request parsing, and response creation packed into one file makes it difficult to maintain as more endpoints are added.
+
+Your job is **not** to fix broken code. The starting server already works. Your job is **refactoring**: reorganizing the working code into a clean, modular architecture.
+
+There is **no database** in this lab. All responses return truthful acknowledgements. POST, PUT, and DELETE confirm the request without pretending to save, alter, or remove records.
+
+## Starter Code: The One-File API
+
+Create a new, separate project folder for this lab outside the `learn` repository (for example, `C:\ite303-labs\course-api`).
+
+### Setup Commands
+
+```powershell
+mkdir course-api
+cd course-api
+pnpm init
+pnpm add express@5
+pnpm add -D typescript tsx @types/node @types/express@5
+mkdir src
+```
+
+Configure `package.json` with `"type": "module"` and your scripts:
+
+```json
+{
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "typecheck": "tsc --noEmit"
+  }
+}
+```
+
+Create `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"]
+}
+```
+
+### The Working `src/server.ts`
+
+Create `src/server.ts` and paste the starting code below. Run `pnpm dev` to verify that it starts without errors.
+
+```typescript
+import express from 'express';
+import type { Request, Response } from 'express';
+
+const app = express();
+const PORT = 4000;
+
+// Middleware to parse incoming JSON request bodies
+app.use(express.json());
+
+// 1. GET /courses - return course list or filtered by program query
+app.get('/courses', (req: Request, res: Response) => {
+  const program = String(req.query.program ?? 'all programs');
+  res.json({
+    message: 'Course list request received',
+    program
+  });
+});
+
+// 2. GET /courses/:id - return a specific course by ID
+app.get('/courses/:id', (req: Request, res: Response) => {
+  res.json({
+    message: 'Course details request received',
+    courseId: req.params.id
+  });
+});
+
+// 3. POST /courses - receive new course data
+app.post('/courses', (req: Request, res: Response) => {
+  const { code, title, program } = req.body ?? {};
+
+  if (
+    typeof code !== 'string' || !code.trim() ||
+    typeof title !== 'string' || !title.trim() ||
+    typeof program !== 'string' || !program.trim()
+  ) {
+    return res.status(400).json({
+      message: 'code, title, and program are required'
+    });
+  }
+
+  res.status(200).json({
+    message: 'Course data received; nothing was saved',
+    course: { code, title, program }
+  });
+});
+
+// 4. PUT /courses/:id - receive updated course data
+app.put('/courses/:id', (req: Request, res: Response) => {
+  res.json({
+    message: 'Update request received; nothing was changed',
+    courseId: req.params.id,
+    updatedData: req.body
+  });
+});
+
+// 5. DELETE /courses/:id - receive delete request
+app.delete('/courses/:id', (req: Request, res: Response) => {
+  res.json({
+    message: 'Delete request received; nothing was removed',
+    courseId: req.params.id
+  });
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Course API running at http://localhost:${PORT}`);
+});
+```
+
+### API Behavior Contract
+
+The starting server implements this contract:
+
+| HTTP Method | Path | Query / Body | Status | Expected Response Shape |
+|---|---|---|---|---|
+| `GET` | `/courses` | None | `200` | `{ "message": "Course list request received", "program": "all programs" }` |
+| `GET` | `/courses?program=BSIT` | `program=BSIT` | `200` | `{ "message": "Course list request received", "program": "BSIT" }` |
+| `GET` | `/courses/3` | Route parameter `:id` = `3` | `200` | `{ "message": "Course details request received", "courseId": "3" }` |
+| `POST` | `/courses` | Valid JSON body | `200` | `{ "message": "Course data received; nothing was saved", "course": { ... } }` |
+| `POST` | `/courses` | Missing or empty required field | `400` | `{ "message": "code, title, and program are required" }` |
+| `PUT` | `/courses/3` | JSON body | `200` | `{ "message": "Update request received; nothing was changed", "courseId": "3", "updatedData": { ... } }` |
+| `DELETE` | `/courses/3` | Route parameter `:id` = `3` | `200` | `{ "message": "Delete request received; nothing was removed", "courseId": "3" }` |
+
+Test one or two requests in Postman now to confirm that the starting server works before you make any edits.
+
+---
+
+## Target Project Architecture
+
+You will refactor the project into three distinct parts:
+
+```text
+course-api/
+├── src/
+│   ├── controllers/
+│   │   └── courseController.ts
+│   ├── routes/
+│   │   └── courseRoutes.ts
+│   └── server.ts
+├── package.json
+└── tsconfig.json
+```
+
+### Separation of Responsibilities
+
+| File | What belongs here | What does NOT belong here |
+|---|---|---|
+| `src/server.ts` | App initialization, `express.json()`, mounting routes with `app.use()`, `app.listen()`. | Individual route definitions, request validation, response payloads. |
+| `src/routes/courseRoutes.ts` | Express `Router`, mapping HTTP methods (`get`, `post`, `put`, `delete`) and paths to controller functions. | Request parameter parsing, business logic, formatting JSON responses. |
+| `src/controllers/courseController.ts` | Controller functions that read `req.query`, `req.params`, and `req.body`, validate input, and call `res.json()`. | `app.listen()`, `Router` instantiation, route mounting. |
+
+---
+
+## Step 1: Create the Course Controller
+
+Create `src/controllers/courseController.ts`.
+
+Move the logic from the five handlers in `server.ts` into individual exported functions:
+
+1. `getCourses`
+2. `getCourseById`
+3. `createCourse`
+4. `updateCourse`
+5. `deleteCourse`
+
+Each function must have the signature `(req: Request, res: Response)`. Import the types at the top of the file:
+
+```typescript
+import type { Request, Response } from 'express';
+```
+
+### Implementation Guidance
+
+- **`getCourses`**: Needs `req.query.program`. If `program` is missing, default to `'all programs'`.
+- **`getCourseById`**: Needs `req.params.id`. Return `courseId` in the response JSON.
+- **`createCourse`**: Reads `req.body`. Check that `code`, `title`, and `program` are non-empty strings. If invalid, return status `400`. If valid, return status `200` and the truthful message.
+- **`updateCourse`**: Needs both `req.params.id` and `req.body`. Return status `200` with `courseId` and `updatedData`.
+- **`deleteCourse`**: Needs `req.params.id`. Return status `200` with `courseId`.
+
+Do not change the response messages or properties. Preserve the exact behavior from the starting code.
+
+---
+
+## Step 2: Create the Course Router
+
+Create `src/routes/courseRoutes.ts`.
+
+1. Import `Router` from `express`.
+2. Import your five controller functions from `../controllers/courseController`.
+3. Create a new router instance: `const router = Router();`.
+4. Map each HTTP method and path to its corresponding controller function.
+5. Export the router as default: `export default router;`.
+
+### Example Mapping
+
+Here is how the first route is mapped:
+
+```typescript
+router.get('/', getCourses);
+```
+
+### Complete the Remaining Mappings
+
+Now map the remaining four routes yourself:
+
+- `GET /:id` &rarr; `getCourseById`
+- `POST /` &rarr; `createCourse`
+- `PUT /:id` &rarr; `updateCourse`
+- `DELETE /:id` &rarr; `deleteCourse`
+
+> [!IMPORTANT]
+> Notice the paths in the router: use `'/'` and `'/:id'`, **not** `'/courses'` or `'/courses/:id'`.
+> The prefix `/courses` will be applied when you mount the router in `server.ts`. Repeating `/courses` inside the router would create duplicate paths like `/courses/courses`.
+
+---
+
+## Step 3: Simplify `server.ts`
+
+Refactor `src/server.ts` so that it only handles application setup, middleware, route mounting, and startup.
+
+Your refactored `server.ts` should:
+
+1. Import `express`.
+2. Import `courseRoutes` from `./routes/courseRoutes`.
+3. Create the Express application (`const app = express();`).
+4. Register `express.json()` before any routes.
+5. Mount the router using:
+   ```typescript
+   app.use('/courses', courseRoutes);
+   ```
+6. Start the server on port 4000 with `app.listen()`.
+
+Remove all five original route handlers from `server.ts`. The resulting file should be approximately 15 lines long.
+
+### Understanding Check: Route Mounting
+
+Consider these two statements in your refactored project:
+
+```typescript
+// in src/server.ts
+app.use('/courses', courseRoutes);
+
+// in src/routes/courseRoutes.ts
+router.get('/:id', getCourseById);
+```
+
+**How does Express assemble the public endpoint?**
+- `server.ts` tells Express: *“Any incoming request whose path starts with `/courses` should be handled by `courseRoutes`.”*
+- `courseRoutes.ts` tells Express: *“Within this router, match `/:id` and run `getCourseById`.”*
+- Together, the mounted base path (`/courses`) and the router path (`/:id`) form the public endpoint: **`GET /courses/:id`**.
+- When a client sends **`GET /courses/3`**, Express matches `/courses` to `courseRoutes`, matches `/3` to `/:id`, sets `req.params.id = '3'`, and calls `getCourseById`.
+
+---
+
+## Step 4: Test Your Refactored API in Postman
+
+Save all files and run `pnpm typecheck` to confirm there are no TypeScript errors. Ensure your server is running with `pnpm dev`.
+
+Open Postman and execute the six required test requests:
+
+### Test 1: GET All Courses
+- **Method:** `GET`
+- **URL:** `http://localhost:4000/courses`
+- **Expected Status:** `200 OK`
+- **Expected Body:**
+  ```json
+  {
+    "message": "Course list request received",
+    "program": "all programs"
+  }
+  ```
+
+### Test 2: GET Courses with Program Query
+- **Method:** `GET`
+- **URL:** `http://localhost:4000/courses?program=BSIT`
+- **Expected Status:** `200 OK`
+- **Expected Body:**
+  ```json
+  {
+    "message": "Course list request received",
+    "program": "BSIT"
+  }
+  ```
+
+### Test 3: GET Course by ID
+- **Method:** `GET`
+- **URL:** `http://localhost:4000/courses/3`
+- **Expected Status:** `200 OK`
+- **Expected Body:**
+  ```json
+  {
+    "message": "Course details request received",
+    "courseId": "3"
+  }
+  ```
+
+### Test 4: POST a New Course
+- **Method:** `POST`
+- **URL:** `http://localhost:4000/courses`
+- **Headers:** `Content-Type: application/json`
+- **Body (raw JSON):**
+  ```json
+  {
+    "code": "ITE303",
+    "title": "Web Systems and Technologies 2",
+    "program": "BSIT"
+  }
+  ```
+- **Expected Status:** `200 OK`
+- **Expected Body:**
+  ```json
+  {
+    "message": "Course data received; nothing was saved",
+    "course": {
+      "code": "ITE303",
+      "title": "Web Systems and Technologies 2",
+      "program": "BSIT"
+    }
+  }
+  ```
+
+### Test 5: PUT (Update) a Course
+- **Method:** `PUT`
+- **URL:** `http://localhost:4000/courses/3`
+- **Headers:** `Content-Type: application/json`
+- **Body (raw JSON):**
+  ```json
+  {
+    "title": "Web Systems and Technologies 2 (Updated)",
+    "program": "BSIT"
+  }
+  ```
+- **Expected Status:** `200 OK`
+- **Expected Body:**
+  ```json
+  {
+    "message": "Update request received; nothing was changed",
+    "courseId": "3",
+    "updatedData": {
+      "title": "Web Systems and Technologies 2 (Updated)",
+      "program": "BSIT"
+    }
+  }
+  ```
+
+### Test 6: DELETE a Course
+- **Method:** `DELETE`
+- **URL:** `http://localhost:4000/courses/3`
+- **Expected Status:** `200 OK`
+- **Expected Body:**
+  ```json
+  {
+    "message": "Delete request received; nothing was removed",
+    "courseId": "3"
+  }
+  ```
+
+---
+
+## Step 5: Explain the Request Flow
+
+Trace the exact lifecycle of an incoming **`GET /courses/3`** request through your refactored application:
+
+```text
+Postman (Client)
+      │
+      ▼
+   server.ts  ── (app.use('/courses', courseRoutes))
+      │
+      ▼
+courseRoutes.ts  ── (router.get('/:id', getCourseById))
+      │
+      ▼
+courseController.ts  ── (getCourseById: reads req.params.id)
+      │
+      ▼
+   Response (JSON: 200 OK)
+      │
+      ▼
+Postman (Client)
+```
+
+In your submission report, explain what happens at each numbered stage in your own words:
+1. What does `server.ts` do when the request arrives at port 4000?
+2. How does `courseRoutes.ts` decide which controller function to call?
+3. What does `getCourseById` in `courseController.ts` do with `req.params.id`?
+4. How does the JSON response travel back to Postman?
+
+---
+
+## Understanding & Reflection Questions
+
+Answer each question concisely (2–3 sentences) in your report:
+
+1. **Motivation:** Why did you move the route handlers out of `server.ts` into separate files?
+2. **Router Responsibility:** What is the primary job of `src/routes/courseRoutes.ts`?
+3. **Controller Responsibility:** What is the primary job of `src/controllers/courseController.ts`?
+4. **Endpoint Resolution:** Why does `router.get('/:id', ...)` in `courseRoutes.ts` become `/courses/:id` on the network?
+5. **Route Parameters:** Which controller functions in this lab use `req.params`, and what data do they read?
+6. **Request Body:** Which controller functions use `req.body`, and why is `express.json()` required in `server.ts` for them to work?
+7. **Data Persistence:** Does `POST /courses` actually save a new course to a database in this lab? Why or why not?
+8. **Refactoring Concept:** What changed during this refactoring process, and what stayed the same from the client's perspective?
+
+---
+
+## Submission Requirements
+
+Submit your work through your instructor's designated submission portal. Include:
+
+### A. Source Code
+Submit your complete project folder (`course-api`) or your repository link as instructed.
+- Exclude `node_modules` and build output.
+- Must include `src/server.ts`, `src/routes/courseRoutes.ts`, `src/controllers/courseController.ts`, `package.json`, and `tsconfig.json`.
+
+### B. Project Structure Screenshot
+One screenshot showing your code editor's file explorer with:
+- `src/server.ts`
+- `src/routes/courseRoutes.ts`
+- `src/controllers/courseController.ts`
+
+### C. Postman Evidence
+Screenshots showing the request URL, HTTP method, status code, and response body for:
+1. `GET /courses` (or `GET /courses?program=BSIT`)
+2. `GET /courses/3`
+3. `POST /courses`
+4. `PUT /courses/3`
+5. `DELETE /courses/3`
+
+*(Note: You do not need five separate image files if your captures clearly combine and label the evidence).*
+
+### D. Written Report
+A `report.md` or PDF document containing:
+- Your step-by-step explanation of the `GET /courses/3` request flow (Step 5).
+- Your answers to the 8 Reflection Questions.
+- Proof that `pnpm typecheck` ran with zero errors.
+
+---
+
+## Completion Checklist
+
+Before submitting, check every item:
+
+- [ ] `src/server.ts` contains only setup, middleware, route mounting, and `listen`.
+- [ ] `src/routes/courseRoutes.ts` contains all five route mappings using an Express `Router`.
+- [ ] `src/controllers/courseController.ts` contains all five exported controller functions.
+- [ ] `GET /courses` returns the course list acknowledgement.
+- [ ] `GET /courses?program=BSIT` returns the requested program from `req.query.program`.
+- [ ] `GET /courses/:id` returns the requested `courseId` from `req.params.id`.
+- [ ] `POST /courses` reads `req.body`, validates fields, and returns status 200 (or 400 for missing fields).
+- [ ] `PUT /courses/:id` reads `req.params.id` and `req.body` and returns status 200.
+- [ ] `DELETE /courses/:id` reads `req.params.id` and returns status 200.
+- [ ] Responses do not falsely claim data was saved, updated, or deleted.
+- [ ] `pnpm typecheck` passes with zero errors under TypeScript strict mode.
+- [ ] Postman evidence captures are taken and organized.
+- [ ] All 8 reflection questions and the request flow trace are answered in the report.
+
+---
+
+## Rubric — 100 Points
+
+| Criterion | Points | Evaluation Details |
+|---|---:|---|
+| **Project Structure & Separation of Concerns** | 20 | Clean folder structure (`controllers/`, `routes/`, `server.ts`) (10); `server.ts` is streamlined and contains no inline route handlers (10). |
+| **Express Router Configuration** | 15 | `courseRoutes.ts` uses `Router()` correctly (5); all five endpoints mapped to correct controller functions (5); routes use relative paths (`/`, `/:id`) without repeating `/courses` (5). |
+| **Controller Implementation** | 20 | All five controller functions correctly exported with `(req: Request, res: Response)` typing (10); response messages match the API contract (10). |
+| **Request Data Usage** | 15 | Correct use of `req.params.id` in `getCourseById`, `updateCourse`, and `deleteCourse` (5); correct use of `req.query.program` with fallback in `getCourses` (5); correct extraction and validation of `req.body` in `createCourse` and `updateCourse` (5). |
+| **Postman Testing Evidence** | 15 | Evidence for collection/query GET, ID GET, POST, PUT, and DELETE showing method, URL, status, and JSON response body (15). |
+| **Request Flow & Architectural Understanding** | 15 | Accurate trace of `GET /courses/3` through the architecture (7); thoughtful, correct answers to the 8 reflection questions (8). |
+| **Total** | **100** | |
