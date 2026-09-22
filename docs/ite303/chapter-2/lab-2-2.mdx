@@ -232,15 +232,17 @@ Each function must have the signature `(req: Request, res: Response)`. Import th
 import type { Request, Response } from 'express';
 ```
 
-### Implementation Guidance
+### Data Access Hints
 
-- **`getCourses`**: Needs `req.query.program`. If `program` is missing, default to `'all programs'`.
-- **`getCourseById`**: Needs `req.params.id`. Return `courseId` in the response JSON.
-- **`createCourse`**: Reads `req.body`. Check that `code`, `title`, and `program` are non-empty strings. If invalid, return status `400`. If valid, return status `200` and the truthful message.
-- **`updateCourse`**: Needs both `req.params.id` and `req.body`. Return status `200` with `courseId` and `updatedData`.
-- **`deleteCourse`**: Needs `req.params.id`. Return status `200` with `courseId`.
+Transfer the logic from the five handlers in your starting `server.ts` into these functions, using Lesson 2.2.3 as your conceptual reference. Keep the exact status codes, JSON keys, and truthful acknowledgement messages from the API contract.
 
-Do not change the response messages or properties. Preserve the exact behavior from the starting code.
+| Controller Function | Primary Request Data | Notes |
+|---|---|---|
+| `getCourses` | `req.query` | Reads optional `program` filter with a default |
+| `getCourseById` | `req.params` | Reads route parameter `:id` |
+| `createCourse` | `req.body` | Validates required fields, returns 400 or 200 |
+| `updateCourse` | `req.params` + `req.body` | Reads `:id` and request body |
+| `deleteCourse` | `req.params` | Reads route parameter `:id` |
 
 ---
 
@@ -251,12 +253,12 @@ Create `src/routes/courseRoutes.ts`.
 1. Import `Router` from `express`.
 2. Import your five controller functions from `../controllers/courseController`.
 3. Create a new router instance: `const router = Router();`.
-4. Map each HTTP method and path to its corresponding controller function.
+4. Map the five HTTP methods and paths to your controller functions.
 5. Export the router as default: `export default router;`.
 
 ### Example Mapping
 
-Here is how the first route is mapped:
+Here is the route mapping for listing courses:
 
 ```typescript
 router.get('/', getCourses);
@@ -264,40 +266,32 @@ router.get('/', getCourses);
 
 ### Complete the Remaining Mappings
 
-Now map the remaining four routes yourself:
+Now independently map the remaining four routes:
+- `GET /:id`
+- `POST /`
+- `PUT /:id`
+- `DELETE /:id`
 
-- `GET /:id` &rarr; `getCourseById`
-- `POST /` &rarr; `createCourse`
-- `PUT /:id` &rarr; `updateCourse`
-- `DELETE /:id` &rarr; `deleteCourse`
-
-> [!IMPORTANT]
-> Notice the paths in the router: use `'/'` and `'/:id'`, **not** `'/courses'` or `'/courses/:id'`.
-> The prefix `/courses` will be applied when you mount the router in `server.ts`. Repeating `/courses` inside the router would create duplicate paths like `/courses/courses`.
+Remember that paths defined on this router are relative to where the router is mounted in `server.ts`.
 
 ---
 
 ## Step 3: Simplify `server.ts`
 
-Refactor `src/server.ts` so that it only handles application setup, middleware, route mounting, and startup.
+Refactor `src/server.ts` so that it focuses strictly on:
+- Express application initialization
+- Body-parsing middleware (`express.json()`)
+- Mounting `courseRoutes` at `/courses`:
+  ```typescript
+  app.use('/courses', courseRoutes);
+  ```
+- Starting the server on port 4000 (`app.listen()`)
 
-Your refactored `server.ts` should:
-
-1. Import `express`.
-2. Import `courseRoutes` from `./routes/courseRoutes`.
-3. Create the Express application (`const app = express();`).
-4. Register `express.json()` before any routes.
-5. Mount the router using:
-   ```typescript
-   app.use('/courses', courseRoutes);
-   ```
-6. Start the server on port 4000 with `app.listen()`.
-
-Remove all five original route handlers from `server.ts`. The resulting file should be approximately 15 lines long.
+Remove all five original route handlers from `server.ts`. Refer to Lesson 2.2.3 if you need to review the refactored server structure.
 
 ### Understanding Check: Route Mounting
 
-Consider these two statements in your refactored project:
+Consider these two statements from your refactored project:
 
 ```typescript
 // in src/server.ts
@@ -307,11 +301,10 @@ app.use('/courses', courseRoutes);
 router.get('/:id', getCourseById);
 ```
 
-**How does Express assemble the public endpoint?**
-- `server.ts` tells Express: *“Any incoming request whose path starts with `/courses` should be handled by `courseRoutes`.”*
-- `courseRoutes.ts` tells Express: *“Within this router, match `/:id` and run `getCourseById`.”*
-- Together, the mounted base path (`/courses`) and the router path (`/:id`) form the public endpoint: **`GET /courses/:id`**.
-- When a client sends **`GET /courses/3`**, Express matches `/courses` to `courseRoutes`, matches `/3` to `/:id`, sets `req.params.id = '3'`, and calls `getCourseById`.
+In your written report, answer these three questions:
+1. What is the full public endpoint created by combining these two lines?
+2. What URL would you enter in Postman to request course ID `3`?
+3. Why should you **not** write `router.get('/courses/:id', ...)` inside `courseRoutes.ts`?
 
 ---
 
@@ -422,32 +415,30 @@ Open Postman and execute the six required test requests:
 
 ## Step 5: Explain the Request Flow
 
-Trace the exact lifecycle of an incoming **`GET /courses/3`** request through your refactored application:
+Complete the request flow diagram for an incoming **`GET /courses/3`** request through your refactored application:
 
 ```text
 Postman (Client)
       │
       ▼
-   server.ts  ── (app.use('/courses', courseRoutes))
+ [ ____________ ]
       │
       ▼
-courseRoutes.ts  ── (router.get('/:id', getCourseById))
+ [ ____________ ]
       │
       ▼
-courseController.ts  ── (getCourseById: reads req.params.id)
+ [ ____________ ]
       │
       ▼
-   Response (JSON: 200 OK)
+   Response
       │
       ▼
 Postman (Client)
 ```
 
-In your submission report, explain what happens at each numbered stage in your own words:
-1. What does `server.ts` do when the request arrives at port 4000?
-2. How does `courseRoutes.ts` decide which controller function to call?
-3. What does `getCourseById` in `courseController.ts` do with `req.params.id`?
-4. How does the JSON response travel back to Postman?
+In your submission report:
+1. Fill in the three missing architectural components in order.
+2. In your own words, explain what each component does during the `GET /courses/3` request. You may refer to Lesson 2.2.3 for the conceptual pattern.
 
 ---
 
@@ -493,7 +484,8 @@ Screenshots showing the request URL, HTTP method, status code, and response body
 
 ### D. Written Report
 A `report.md` or PDF document containing:
-- Your step-by-step explanation of the `GET /courses/3` request flow (Step 5).
+- Your answers to the Route Mounting Understanding Check (Step 3).
+- Your completed diagram and explanation of the `GET /courses/3` request flow (Step 5).
 - Your answers to the 8 Reflection Questions.
 - Proof that `pnpm typecheck` ran with zero errors.
 
@@ -515,7 +507,7 @@ Before submitting, check every item:
 - [ ] Responses do not falsely claim data was saved, updated, or deleted.
 - [ ] `pnpm typecheck` passes with zero errors under TypeScript strict mode.
 - [ ] Postman evidence captures are taken and organized.
-- [ ] All 8 reflection questions and the request flow trace are answered in the report.
+- [ ] The Route Mounting questions, request flow trace, and all 8 reflection questions are answered in the report.
 
 ---
 
@@ -526,7 +518,7 @@ Before submitting, check every item:
 | **Project Structure & Separation of Concerns** | 20 | Clean folder structure (`controllers/`, `routes/`, `server.ts`) (10); `server.ts` is streamlined and contains no inline route handlers (10). |
 | **Express Router Configuration** | 15 | `courseRoutes.ts` uses `Router()` correctly (5); all five endpoints mapped to correct controller functions (5); routes use relative paths (`/`, `/:id`) without repeating `/courses` (5). |
 | **Controller Implementation** | 20 | All five controller functions correctly exported with `(req: Request, res: Response)` typing (10); response messages match the API contract (10). |
-| **Request Data Usage** | 15 | Correct use of `req.params.id` in `getCourseById`, `updateCourse`, and `deleteCourse` (5); correct use of `req.query.program` with fallback in `getCourses` (5); correct extraction and validation of `req.body` in `createCourse` and `updateCourse` (5). |
+| **Request Data Usage** | 15 | Correct use of `req.params.id` in `getCourseById`, `updateCourse`, and `deleteCourse` (5); correct use of `req.query.program` with fallback in `getCourses` (5); `createCourse` correctly reads and validates `req.body`, and `updateCourse` reads `req.body` together with `req.params.id` (5). |
 | **Postman Testing Evidence** | 15 | Evidence for collection/query GET, ID GET, POST, PUT, and DELETE showing method, URL, status, and JSON response body (15). |
 | **Request Flow & Architectural Understanding** | 15 | Accurate trace of `GET /courses/3` through the architecture (7); thoughtful, correct answers to the 8 reflection questions (8). |
 | **Total** | **100** | |
