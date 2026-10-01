@@ -1,5 +1,10 @@
 # Learn delivery plan
 
+## Chapter 3 first lesson — instructor review draft
+
+- [x] Add the first Saturday tutorial, 3.1 Connecting Express to Supabase PostgreSQL, and Lab 3.1 as a read-only extension of the Chapter 2 Student API.
+- The new lesson targets 90–120 minutes. Next after instructor review: database-backed POST, PUT/PATCH, and DELETE. Original Chapter 2 sources remain unresolved.
+
 ## Product direction
 
 One instructor-managed platform for multiple subjects. Initial subjects:

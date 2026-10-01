@@ -1,0 +1,261 @@
+# 3.1 Connecting Express to Supabase PostgreSQL
+
+**ITE 303 — Web Systems and Technologies 2**
+**New draft for instructor review · Saturday self-paced tutorial · about 90–120 minutes**
+
+## What you will build
+
+In Chapter 2, your Student Information API returned acknowledgements. Now its two GET routes will read **real rows** from a PostgreSQL database hosted by Supabase. Express is still your backend. The database is the new part.
+
+```text
+Postman → server.ts → studentRoutes.ts → studentController.ts
+                                            ↓             ↑
+                                      PostgreSQL on Supabase
+                                            ↓
+                                JSON response → Postman
+```
+
+By the end, `GET /students` returns all students and `GET /students/:id` returns one student or a 404. Work in your **Student Information API practice project** from [2.2.3](/web-systems/chapter-2/separation-of-concerns-with-express), not in the `learn` website. Keep your Chapter 2 copy or commit so you can compare it later. We will change only the two GET handlers; the old POST, PUT, and DELETE acknowledgements still do not save data.
+
+### A quick database reminder (5 minutes)
+
+You may have seen these concepts in your database subject. We are reviewing them only because we are about to use them inside a web backend.
+
+| Word | In our `students` example |
+| --- | --- |
+| Table | A named collection of student records. |
+| Row | One student record. |
+| Column | One kind of value, such as `first_name`. |
+| Primary key | A unique `id` for each row. |
+| `SELECT` | Ask PostgreSQL to return rows. |
+| `WHERE` | Limit which rows are returned. |
+
+## 1. Prepare your Supabase project (10–15 minutes)
+
+1. Sign in at [Supabase](https://supabase.com/dashboard). If you already have a project for this activity, open it. Otherwise, create a new project, choose a name, set a **database password**, and wait until it is ready. Store the password privately; you will need it later.
+2. Find **SQL Editor** in the project navigation. That is where you will run SQL. The position of the menu may change.
+3. Find **Connect** near the top of the project dashboard. It shows database connection methods. For a local Express server, choose the **Session pooler** connection string, especially if your network does not support IPv6. Copy the string later; do not share it or take a screenshot of it. Use the project's own displayed host and username.
+
+**Checkpoint:** You can open SQL Editor and locate the Connect panel. If the project is still starting, wait before continuing. [Supabase connection guide](https://supabase.com/docs/guides/database/connecting-to-postgres)
+
+## 2. Create and inspect the table (15–20 minutes)
+
+In SQL Editor, open a new query, paste this SQL, and run it **once**:
+
+```sql
+CREATE TABLE students (
+  id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  student_number text NOT NULL UNIQUE,
+  first_name text NOT NULL,
+  last_name text NOT NULL,
+  course text NOT NULL,
+  year_level integer NOT NULL
+);
+```
+
+PostgreSQL creates the `id` automatically. Next, run this insert **once** in the same project:
+
+```sql
+INSERT INTO students (student_number, first_name, last_name, course, year_level)
+VALUES
+  ('2026-001', 'Ana', 'Santos', 'BSIT', 3),
+  ('2026-002', 'Ben', 'Reyes', 'BSIT', 2),
+  ('2026-003', 'Cara', 'Lim', 'BSCS', 3),
+  ('2026-004', 'Dino', 'Cruz', 'BSIT', 1),
+  ('2026-005', 'Ella', 'Garcia', 'BSCS', 2);
+```
+
+Now run:
+
+```sql
+SELECT * FROM students ORDER BY id;
+```
+
+Expected: a result grid with five rows, including `Ana` with `id` 1 in a fresh table. **Checkpoint: You should see at least five rows in the `students` table before continuing.** If the table already exists, inspect it instead of rerunning `CREATE TABLE`. If the insert reports a duplicate `student_number`, those samples may already be present; run the SELECT to check. Make sure SQL Editor is open in the correct project.
+
+## 3. Add the database packages (5 minutes)
+
+Open a terminal in your **Student Information API project folder**. `pg` lets Node.js send SQL to PostgreSQL. Its TypeScript declarations come from `@types/pg`. `dotenv` reads your local `.env` file.
+
+```bash
+pnpm add pg dotenv
+pnpm add -D @types/pg
+```
+
+Keep your existing Express, TypeScript, and `tsx` setup. **Checkpoint:** `package.json` now lists `pg` and `dotenv` under dependencies and `@types/pg` under devDependencies.
+
+## 4. Keep the connection string private (10 minutes)
+
+An **environment variable** is a named setting read by a program while it runs. Your database address includes a password, so it belongs in a local `.env` file, never in TypeScript or a screenshot.
+
+1. In the root of your Student API project, create `.env` beside `package.json`:
+
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require"
+```
+
+2. Replace the placeholder with the **Session pooler** string from your project's Connect panel. Replace its password placeholder with your private database password. If your password contains characters such as `@`, `#`, `?`, `&`, or a space, percent-encode them for a URL. Keep `sslmode=require` (add it with `?` if the copied URL has no query options, or `&` if it already has options).
+3. Check your **Student API project's** `.gitignore`; add `.env` on its own line if missing. This learning website also ignores `.env*`, but it does not control your separate project. Never commit your `.env` or share the URL. This backend connection string is for server code only, never browser code.
+
+`sslmode=require` makes `pg` require an encrypted connection. This introductory setting does not verify the server certificate; see [Supabase's SSL guidance](https://supabase.com/docs/guides/database/connecting-to-postgres) for certificate verification later. Do not use `rejectUnauthorized: false` as a shortcut.
+
+**Checkpoint:** `.env` exists in your API project and Git ignores it. Do not print its value to verify it.
+
+## 5. Add one reusable connection file (10 minutes)
+
+Your project should still have `src/server.ts`, `src/routes/studentRoutes.ts`, and `src/controllers/studentController.ts`. Add **`src/db.ts`**. A `Pool` keeps a small set of database connections available for reuse. The controller will import this one pool instead of opening a new connection for every request.
+
+```typescript
+import { Pool } from 'pg';
+
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is missing. Check your .env file.');
+}
+
+export const pool = new Pool({ connectionString: databaseUrl });
+```
+
+`pg` reads `sslmode=require` from the URL. In `src/server.ts`, put this import **at the very top, before the router import**:
+
+```typescript
+import 'dotenv/config';
+```
+
+That import loads `.env` into `process.env`. Restart `pnpm dev` after changing `.env`; the running process may still have the old value.
+
+## 6. Test the connection before editing routes (10 minutes)
+
+Temporarily add this import and block in `src/server.ts`, **above `app.listen(...)`**:
+
+```typescript
+import { pool } from './db';
+
+pool.query('SELECT NOW()')
+  .then(() => console.log('Database connected successfully'))
+  .catch(() => console.error('Database connection failed. Check .env, Supabase, and your network.'));
+```
+
+Run `pnpm dev`. Expected terminal line: `Database connected successfully`. This checks the database separately from the route logic. If it fails, stop here: check the password, copied string, `.env` filename, URL encoding, internet connection, and whether the Supabase project is ready. Restart the server after each `.env` change. Do not print the URL. **After it succeeds, remove only this temporary import and block**; `src/db.ts` stays.
+
+## 7. Read all students (10 minutes)
+
+Open `src/controllers/studentController.ts`. Add this import near the top, keeping the existing Express type import:
+
+```typescript
+import { pool } from '../db';
+```
+
+Replace **only** the old `getStudents` function with:
+
+```typescript
+export async function getStudents(_req: Request, res: Response): Promise<void> {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM students ORDER BY id;'
+    );
+    res.json(result.rows);
+  } catch {
+    res.status(500).json({ message: 'Could not load students' });
+  }
+}
+```
+
+The controller asks the database for rows. `result.rows` is the returned list. Express sends it as JSON. A database failure returns a safe 500 message; it does not send credentials to the client.
+
+Restart if needed and send `GET http://localhost:4000/students` in Postman. Expected `200 OK` and an **array** with the five records, starting like:
+
+```json
+[
+  { "id": 1, "student_number": "2026-001", "first_name": "Ana", "last_name": "Santos", "course": "BSIT", "year_level": 3 },
+  { "id": 2, "student_number": "2026-002", "first_name": "Ben", "last_name": "Reyes", "course": "BSIT", "year_level": 2 }
+]
+```
+
+Your actual response should have **at least five** objects. **Checkpoint:** `GET http://localhost:4000/students` returns the rows you inserted into Supabase. If you see the old acknowledgement, check that you edited the existing controller and restarted the server.
+
+## 8. Read one student (10 minutes)
+
+Replace **only** the old `getStudentById` function in that same controller file:
+
+```typescript
+export async function getStudentById(req: Request, res: Response): Promise<void> {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) {
+    res.status(400).json({ message: 'Student ID must be a positive integer' });
+    return;
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM students WHERE id = $1;',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      res.status(404).json({ message: 'Student not found' });
+      return;
+    }
+    res.json(result.rows[0]);
+  } catch {
+    res.status(500).json({ message: 'Could not load student' });
+  }
+}
+```
+
+The router already maps `GET /:id` to this function. `req.params.id` comes from the URL. `$1` keeps that value separate from the SQL command, helping protect the query from unsafe input. No route change is needed if Chapter 2 already contains `router.get('/:id', getStudentById)`. A missing row produces 404; a malformed ID produces 400.
+
+**Checkpoint:** Postman returns one JSON object for an existing ID and `{ "message": "Student not found" }` with status 404 for an unused positive ID.
+
+## 9. Test and explain (10–15 minutes)
+
+For **each** Postman test, inspect the method, full URL, status, and response body:
+
+| Method and URL | Expected status | Expected body |
+| --- | --- | --- |
+| `GET http://localhost:4000/students` | 200 | Array with your five or more rows. |
+| `GET http://localhost:4000/students/1` | 200 if ID 1 exists | One student object; use an ID from your SELECT result if yours differs. |
+| `GET http://localhost:4000/students/9999` | 404 if unused | `{ "message": "Student not found" }` |
+
+Complete this request-flow checkpoint in your own words. Write **one sentence for each named part**, explaining what it does:
+
+```text
+Postman → server.ts → studentRoutes.ts → studentController.ts
+                                      → PostgreSQL / Supabase
+                                      → studentController.ts → JSON response → Postman
+```
+
+## Lab 3.1 — Reading Student Data from PostgreSQL
+
+Use this **same Student API project**. In the remaining time, verify your `students` table and at least five fictional rows; connect Express through `src/db.ts`; make both GET routes read from PostgreSQL; return 404 for a missing ID; run all three Postman tests; and explain the request flow. Do not add database-backed writes yet.
+
+**Submit:**
+
+1. Your source project or repository with `src/server.ts`, `src/routes/studentRoutes.ts`, `src/controllers/studentController.ts`, and `src/db.ts` (or equivalent). **Exclude `.env` and every real credential.**
+2. One Supabase table or SQL-result screenshot showing at least five rows, with no connection string visible.
+3. Three Postman screenshots: all students, one existing student, and missing ID with 404. Show method, URL, status, and body.
+4. Short answers, one or two sentences each: What changed from Chapter 2? What does `db.ts` do? Why is the URL in `.env`? Where does `req.params.id` come from? What does PostgreSQL return to the controller? Why use `$1`?
+
+| Criterion | Points |
+| --- | ---: |
+| Table and at least five rows | 15 |
+| Database connection | 20 |
+| `GET /students` reads real rows | 20 |
+| `GET /students/:id` and 404 | 20 |
+| Postman evidence | 10 |
+| Request flow explanation | 10 |
+| Reflection and complete safe submission | 5 |
+| **Total** | **100** |
+
+## If something goes wrong
+
+| What you see | Check this first |
+| --- | --- |
+| `password authentication failed` | Database password, exact copied connection string, and encoded special characters. |
+| `DATABASE_URL is missing` | `.env` beside `package.json`; `import 'dotenv/config'` first in `server.ts`; restart. |
+| `relation "students" does not exist` | Create the table in the same Supabase project and default `public` schema used by your URL. |
+| `GET /students` returns 500 | Confirm SQL Editor SELECT works, then check the terminal for a connection or query error without sharing secrets. |
+| `Cannot find module 'pg'` | Run `pnpm add pg` in the Student API folder. |
+| Changes to `.env` do not work | Stop the server with Ctrl+C and run `pnpm dev` again. |
+| Connection times out | Check internet access, project readiness, and that you copied the Session pooler URL from your project. |
+
+**Next lesson:** We will use database-backed POST, PUT/PATCH, and DELETE to build a complete CRUD API. Those writes are not part of this Saturday tutorial.

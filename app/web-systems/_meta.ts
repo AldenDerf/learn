@@ -13,6 +13,11 @@ const meta = {
     title: 'Chapter 2 · Scalable REST APIs'
   },
   'chapter-2': 'Chapter 2: Express REST Architecture',
+  '--- chapter-3': {
+    type: 'separator',
+    title: 'Chapter 3 · PostgreSQL Persistence'
+  },
+  'chapter-3': 'Chapter 3: PostgreSQL Persistence',
   'module-3-html-css': {
     title: '3. HTML & CSS Basics',
     display: 'hidden'
