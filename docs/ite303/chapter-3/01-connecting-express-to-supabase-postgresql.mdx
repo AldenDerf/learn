@@ -1,7 +1,7 @@
 # 3.1 Connecting Express to Supabase PostgreSQL
 
 **ITE 303 — Web Systems and Technologies 2**
-**New draft for instructor review · Saturday self-paced tutorial · about 90–120 minutes**
+**Saturday self-paced tutorial · Estimated time: 90–120 minutes**
 
 ## What you will build
 
@@ -94,7 +94,15 @@ An **environment variable** is a named setting read by a program while it runs. 
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require"
 ```
 
-2. Replace the placeholder with the **Session pooler** string from your project's Connect panel. Replace its password placeholder with your private database password. If your password contains characters such as `@`, `#`, `?`, `&`, or a space, percent-encode them for a URL. Keep `sslmode=require` (add it with `?` if the copied URL has no query options, or `&` if it already has options).
+2. Replace the placeholder with the **Session pooler** string from your project's Connect panel. Replace its password placeholder with your private database password. If your password contains characters such as `@`, `#`, `?`, `&`, or a space, percent-encode them for a URL. For example, a password containing `@` changes like this **inside the URL only**:
+
+```text
+Password:     MyPass@2026
+Inside a URL: MyPass%402026
+```
+
+If you are creating a fresh classroom project, a **strong** database password without URL-reserved characters can make this activity easier. Keep `sslmode=require` (add it with `?` if the copied URL has no query options, or `&` if it already has options).
+
 3. Check your **Student API project's** `.gitignore`; add `.env` on its own line if missing. This learning website also ignores `.env*`, but it does not control your separate project. Never commit your `.env` or share the URL. This backend connection string is for server code only, never browser code.
 
 `sslmode=require` makes `pg` require an encrypted connection. This introductory setting does not verify the server certificate; see [Supabase's SSL guidance](https://supabase.com/docs/guides/database/connecting-to-postgres) for certificate verification later. Do not use `rejectUnauthorized: false` as a shortcut.
@@ -124,13 +132,33 @@ import 'dotenv/config';
 
 That import loads `.env` into `process.env`. Restart `pnpm dev` after changing `.env`; the running process may still have the old value.
 
+**Folder checkpoint:** Your existing Chapter 2 routes and controllers stay in place. `.env` belongs beside `package.json`; `db.ts` belongs inside `src`.
+
+```text
+student-api/
+├── .env
+├── .gitignore
+├── package.json
+└── src/
+    ├── db.ts
+    ├── server.ts
+    ├── controllers/
+    │   └── studentController.ts
+    └── routes/
+        └── studentRoutes.ts
+```
+
 ## 6. Test the connection before editing routes (10 minutes)
 
-Temporarily add this import and block in `src/server.ts`, **above `app.listen(...)`**:
+Temporarily add this import **with the other imports at the top** of `src/server.ts`:
 
 ```typescript
 import { pool } from './db';
+```
 
+Then add **only this temporary block** above `app.listen(...)`:
+
+```typescript
 pool.query('SELECT NOW()')
   .then(() => console.log('Database connected successfully'))
   .catch(() => console.error('Database connection failed. Check .env, Supabase, and your network.'));
@@ -173,6 +201,12 @@ Restart if needed and send `GET http://localhost:4000/students` in Postman. Expe
 ```
 
 Your actual response should have **at least five** objects. **Checkpoint:** `GET http://localhost:4000/students` returns the rows you inserted into Supabase. If you see the old acknowledgement, check that you edited the existing controller and restarted the server.
+
+<Callout type="info">
+
+**Notice what happened:** In Chapter 2, the controller created the response directly. Now it asks PostgreSQL for rows first. If the database rows change, the GET response can change without editing Express code.
+
+</Callout>
 
 ## 8. Read one student (10 minutes)
 
@@ -227,6 +261,8 @@ Postman → server.ts → studentRoutes.ts → studentController.ts
 ## Lab 3.1 — Reading Student Data from PostgreSQL
 
 Use this **same Student API project**. In the remaining time, verify your `students` table and at least five fictional rows; connect Express through `src/db.ts`; make both GET routes read from PostgreSQL; return 404 for a missing ID; run all three Postman tests; and explain the request flow. Do not add database-backed writes yet.
+
+**Tiny challenge (a few minutes):** Add one more fictional student directly in Supabase SQL Editor or Table Editor. Send `GET /students` again and find the new row. **Do not change your Express source code.** The new response comes from the database, not hard-coded JavaScript data.
 
 **Submit:**
 
