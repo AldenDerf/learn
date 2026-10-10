@@ -2,7 +2,7 @@
 
 **ITE 303 — Web Systems and Technologies 2**
 
-**Instructor-review draft · Self-paced lesson · Estimated time: 90–120 minutes**
+**Self-paced tutorial and activity · Estimated time: 90–120 minutes**
 
 ## What you will build
 
@@ -244,6 +244,12 @@ ORDER BY id;
 
 The data survives restarting Express because it lives in **PostgreSQL**, not a JavaScript array.
 
+### Try a year-level rule yourself
+
+The guided handler accepts any positive whole number because the table has no maximum-year rule. In your own controller, change the validation so `year_level` accepts **only 1, 2, 3, or 4**. Decide where to check the upper limit and update the error message. The table is unchanged; this rule belongs to your API.
+
+Test `4` with a new fictional student number: expect **201**. Test `5` with another unused number: expect **400** and confirm with GET or Supabase that no row was added. Explain in one sentence why the API checks this rule even though the table does not. Keep the earlier missing-field and duplicate tests too.
+
 ## 6. Explain the request flow (10 minutes)
 
 Fill in this flow using your own words:
@@ -268,29 +274,6 @@ Answer these questions in one or two sentences each:
 5. Why is `201 Created` more appropriate than `200 OK` for a successful POST?
 6. How do you know the student was permanently saved?
 
-## Lab 3.2 — Create a Student Using PostgreSQL
-
-**Task:** Extend your existing Chapter 3.1 Student API so it creates a fictional student through POST, validates the body, handles duplicate student numbers, and confirms persistence through GET.
-
-**Independent challenge:** The guided handler above accepts any positive whole number because the Chapter 3.1 table has no maximum. For your lab, change the POST validation so `year_level` accepts **only the whole numbers 1, 2, 3, or 4**. Work out where the upper-bound check belongs and update the error message yourself. Test both `4` (accepted) and `5` (400, no row saved). Explain why this application rule belongs in validation even though the current table does not enforce it.
-
-**Submit:**
-
-1. Your Student API source code, keeping the GET handlers and adding the database-backed POST handler. **Do not submit `.env` or real credentials.**
-2. Postman evidence for the **201**, **400**, and **409** POST cases, including accepted `year_level: 4` and rejected `year_level: 5`. Show method, URL, status, and response body; use a new fictional student number for each successful create.
-3. One GET result showing the newly created row after a server restart.
-4. Short written answers to the six questions in Section 6 and the independent challenge explanation.
-
-| Criterion | Points |
-| --- | ---: |
-| Existing GET endpoints remain working | 15 |
-| Correct parameterized POST INSERT and generated ID | 25 |
-| Required-field validation and lab-only year-level range (1–4) | 15 |
-| Duplicate handling (409) and safe server error (500) | 15 |
-| Postman and persistence evidence | 20 |
-| Request-flow explanation, reflection, and challenge reasoning | 10 |
-| **Total** | **100** |
-
 ## Troubleshooting
 
 | Symptom | First thing to check |
@@ -302,7 +285,16 @@ Answer these questions in one or two sentences each:
 | POST returns 201 but GET cannot find it | Make sure both routes use the same Supabase project and `students` table. |
 | TypeScript reports missing imports | Keep the existing `Request`, `Response`, and `pool` imports from Lesson 3.1. |
 
-**Next lesson:** **3.3 Updating Student Records with PUT/PATCH** will change an existing database row. We will handle DELETE in a subsequent lesson.
+## What to submit
 
----
-**Instructor note:** This is newly authored material for review, not an imported original handout. Confirm the exact Chapter 2 router/controller names and local environment before publishing to students.
+Submit your Student API source with both working GET handlers and the database-backed POST handler. Exclude `.env`, database URLs, passwords, and real student information. Submit your Section 6 answers and your explanation of the 1–4 year-level rule.
+
+Use this evidence checklist. Each Postman screenshot should show the method, full URL, status, and response body:
+
+1. **Created row:** POST `/students` returns **201** and the new fictional student with a generated `id`.
+2. **Read and persistence:** GET `/students` or `/students/:id` shows that same student with **200** after you stop and restart Express. Show the restarted terminal without credentials. Also show the row and its `id` in a Supabase table or SELECT result, with the Connect panel hidden.
+3. **Invalid input:** POST without `first_name` returns **400**. Show a second **400** for `year_level: 5` after your rule change, and confirm no row was added. Keep the `"two"` test from Section 5 as a check while coding.
+4. **Duplicate:** Repeat a successful POST body. Show **409** and its message for the same `student_number`.
+5. **Year-level boundary:** Show one successful POST with `year_level: 4` and a new fictional student number. You may use this as your created-row screenshot if it also shows **201** and the generated `id`.
+
+**Next lesson:** **3.3 Updating Student Records with PUT, then PATCH** will change an existing database row. DELETE comes later.

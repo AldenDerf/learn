@@ -1,15 +1,15 @@
 # Learn delivery plan
 
-## Chapter 3 first lesson — instructor review draft
+## Chapter 3.1 — GET and PostgreSQL tutorial
 
-- [x] Add the first Saturday tutorial, 3.1 Connecting Express to Supabase PostgreSQL, and Lab 3.1 as a read-only extension of the Chapter 2 Student API.
+- [x] Add the first Saturday tutorial, 3.1 Connecting Express to Supabase PostgreSQL, as a read-only extension of the Chapter 2 Student API. Its activity and evidence are part of the tutorial.
 - The 3.1 lesson targets 90–120 minutes. A database-backed POST draft now follows as 3.2; PUT/PATCH and DELETE remain future work. Original Chapter 2 sources remain unresolved.
 
-## Chapter 3.2 — instructor review draft
+## Chapter 3.2 — POST and PostgreSQL tutorial
 
-- [x] Add the 90–120 minute POST and PostgreSQL lesson and Lab 3.2 as a continuation of Chapter 3.1, using the same Student Information API and fictional records.
+- [x] Add the 90–120 minute POST and PostgreSQL tutorial as a continuation of Chapter 3.1, using the same Student Information API and fictional records. Its year-level challenge and evidence are part of the tutorial.
 - [x] Link its canonical MDX through a thin route wrapper after 3.1; update Chapter 3 overview, navigation, and instructor notes.
-- Next: instructor review and classroom rehearsal for October 10, 2026. The guided handler accepts positive whole-number `year_level` values; Lab 3.2 challenges students to restrict them to 1–4. Confirm the classroom project structure. Database-backed PUT/PATCH and DELETE remain future lessons; original Chapter 2 handout sources remain unresolved.
+- Next: classroom rehearsal for October 10, 2026. The guided handler accepts positive whole-number `year_level` values; students then restrict them to 1–4. Confirm the classroom project structure. Plan 3.3 as database-backed PUT followed by PATCH, using the same tutorial-as-activity format. DELETE remains a later lesson; original Chapter 2 handout sources remain unresolved.
 
 ## Product direction
 
