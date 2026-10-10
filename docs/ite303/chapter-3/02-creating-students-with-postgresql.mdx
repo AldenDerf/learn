@@ -1,0 +1,300 @@
+# 3.2 Creating Student Records with POST and PostgreSQL
+
+**ITE 303 — Web Systems and Technologies 2**
+
+**Self-paced tutorial and activity · Estimated time: 90–120 minutes**
+
+## What you will build
+
+Last time, your Student Information API used **GET** to read real students from Supabase PostgreSQL. Today, you will make **POST /students** save a new fictional student to the same database.
+
+```text
+Postman POST /students
+   ↓ JSON request
+server.ts → studentRoutes.ts → studentController.ts
+                                  ↓
+                    INSERT INTO students (...) VALUES (...)
+                                  ↓
+                       PostgreSQL / Supabase
+                                  ↓
+                     201 Created + new student
+```
+
+You will work in your **Student Information API practice project**, **not** inside the Learn website. Keep the two database-backed GET handlers from [Lesson 3.1](/web-systems/chapter-3/connecting-express-to-supabase-postgresql). The existing PUT and DELETE routes may still return acknowledgements; we will make those persistent in later lessons.
+
+### Learning goals
+
+By the end, you should be able to:
+
+1. Explain the difference between reading a record with GET and creating one with POST.
+2. Receive JSON data with `express.json()` and `req.body`.
+3. Check required fields before writing to the database.
+4. Use a **parameterized INSERT query** and `RETURNING` with the existing `pg` pool.
+5. Test success, missing fields, invalid year levels, and duplicate student numbers in Postman.
+6. Confirm that the inserted record remains available through GET after restarting Express.
+
+## 1. Check your starting project (10 minutes)
+
+You need the Chapter 3.1 project, a working Supabase project, and Postman.
+
+```text
+student-api/
+├── .env                 # private; never submit or commit
+├── package.json
+└── src/
+    ├── db.ts
+    ├── server.ts
+    ├── routes/studentRoutes.ts
+    └── controllers/studentController.ts
+```
+
+Before editing anything:
+
+- Run `pnpm dev` in the **Student API project** and send `GET http://localhost:4000/students` in Postman.
+- Confirm you see the real rows from Supabase, not the old Chapter 2 acknowledgement.
+- Check that `src/server.ts` loads `dotenv/config` before database-dependent code and calls `app.use(express.json())` **before** mounting the student router.
+- Check that `src/db.ts` exports the same working `pool` you used in Lesson 3.1.
+- In Supabase SQL Editor, confirm your practice `public.students` table has `student_number`, `first_name`, `last_name`, `course`, and `year_level`. The database generates `id` automatically.
+
+The relevant part of `src/server.ts` should be ordered like this. `express.json()` reads JSON sent by Postman. It must run before the student routes so `req.body` has that data. Keep any other middleware and routes already in your project:
+
+```typescript
+import 'dotenv/config';
+import express from 'express';
+import studentRoutes from './routes/studentRoutes';
+
+const app = express();
+
+// Read JSON sent by Postman
+app.use(express.json());
+
+// Send student requests to the student router
+app.use('/students', studentRoutes);
+
+app.listen(4000, () => {
+  console.log('Practice API: http://localhost:4000');
+});
+```
+
+**Checkpoint:** Your old GET endpoints still work. If not, fix Chapter 3.1 first. Do not recreate the table or share your connection string.
+
+## 2. Understand the POST request (10 minutes)
+
+GET asks for data. POST sends data for the server to create something new.
+
+Send a request to `POST http://localhost:4000/students`. Under Postman **Body → raw → JSON**, use fictional details:
+
+```json
+{
+  "student_number": "2026-006",
+  "first_name": "Faye",
+  "last_name": "Mendoza",
+  "course": "BSIT",
+  "year_level": 2
+}
+```
+
+The `id` is intentionally absent: **PostgreSQL assigns it**. Because you are sending JSON, Postman should send `Content-Type: application/json`.
+
+The Express JSON middleware reads this request and makes it available as `req.body`. In the POST handler, `req.body` is the data sent by Postman. We must check it before saving anything.
+
+**Think:** Why should users not pick their own database-generated IDs?
+
+## 3. Check the router (5–10 minutes)
+
+Open `src/routes/studentRoutes.ts`. Keep your existing GET routes and **reuse** the POST route from Chapter 2. A route matches a method and path to a controller function. The relevant lines should look like this:
+
+```typescript
+import { Router } from 'express';
+import {
+  getStudents,
+  getStudentById,
+  createStudent
+} from '../controllers/studentController';
+
+const router = Router();
+
+// Send GET requests to the existing read functions
+router.get('/', getStudents);
+router.get('/:id', getStudentById);
+
+// Send POST /students to the create function
+router.post('/', createStudent);
+
+// Keep your other existing Chapter 2 routes here.
+
+export default router;
+```
+
+**Do not replace the entire router** if you already have PUT or DELETE handlers. Add only a missing `createStudent` import or `router.post('/', createStudent)` mapping. In `server.ts`, your existing `app.use('/students', studentRoutes)` maps this router's `/` to `/students`.
+
+## 4. Make POST save to PostgreSQL (25–30 minutes)
+
+Open `src/controllers/studentController.ts`. **Keep both GET functions from Chapter 3.1.** Keep your existing Express `Request`/`Response` imports and the `pool` import from `../db`. Replace **only the old acknowledgement-only `createStudent` handler** with the following.
+
+First, the handler checks that Postman sent a JSON object. It then checks the four text fields and `year_level`. A valid year level is a positive whole number, such as `1` or `2`. Chapter 3.1's table has no maximum-year rule. The SQL uses `$1` to `$5` as places for the five checked values; `pg` sends the values separately from the SQL text. `RETURNING` gives us the new row, including the `id` made by PostgreSQL.
+
+```typescript
+export async function createStudent(req: Request, res: Response): Promise<void> {
+  // Get the data sent by Postman
+  const body = req.body;
+
+  // Make sure the data is a JSON object
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    res.status(400).json({ message: 'A JSON object is required' });
+    return;
+  }
+
+  const { student_number, first_name, last_name, course, year_level } = body;
+
+  // Check the required text fields
+  if (typeof student_number !== 'string' || student_number.trim() === '' ||
+      typeof first_name !== 'string' || first_name.trim() === '' ||
+      typeof last_name !== 'string' || last_name.trim() === '' ||
+      typeof course !== 'string' || course.trim() === '') {
+    res.status(400).json({ message: 'All text fields are required' });
+    return;
+  }
+
+  // Check that the year level is a positive whole number
+  if (typeof year_level !== 'number' || !Number.isInteger(year_level) ||
+      year_level < 1) {
+    res.status(400).json({ message: 'year_level must be a positive whole number' });
+    return;
+  }
+
+  // Match each SQL place ($1 to $5) with one value below
+  const sql = `INSERT INTO students
+    (student_number, first_name, last_name, course, year_level)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id, student_number, first_name, last_name, course, year_level;`;
+  const values = [
+    student_number.trim(), first_name.trim(), last_name.trim(),
+    course.trim(), year_level
+  ];
+
+  try {
+    // Save the student to PostgreSQL
+    const result = await pool.query(sql, values);
+
+    // Send the saved student back to Postman
+    res.status(201).json(result.rows[0]);
+  } catch (error: unknown) {
+    // Tell Postman if the student number is already used
+    if (typeof error === 'object' && error !== null &&
+        'code' in error && error.code === '23505') {
+      res.status(409).json({ message: 'student_number already exists' });
+      return;
+    }
+
+    // Send a safe message for other database errors
+    res.status(500).json({ message: 'Could not create student' });
+  }
+}
+```
+
+### Read the code in plain language
+
+- `req.body` receives the student's JSON from Postman.
+- The checks stop blank names, missing fields, arrays, and invalid year levels. A rejected request returns **400 Bad Request** without saving a row.
+- This practice API accepts positive whole numbers for `year_level`. A JSON number such as `2` passes; a string such as `"2"`, zero, or a decimal does not.
+- `$1` through `$5` match the values in the array in the same order. Keep student input out of the SQL text.
+- `INSERT INTO` saves a row. `RETURNING` asks PostgreSQL to send the new row back, including its generated `id`.
+- `201 Created` means the save succeeded. If `student_number` is already used, PostgreSQL reports code `23505`; the API returns **409 Conflict**.
+- Unexpected database errors return a safe **500** message; never send credentials or the raw database error to Postman.
+
+**Checkpoint:** Your GET code is unchanged, and `createStudent` now contains a database `INSERT`.
+
+<Callout type="warning">
+
+Use **fictional student information only**. Keep `.env` and `DATABASE_URL` private. Do not place database credentials in the Learn website, a public repository, screenshots, or a browser application.
+
+</Callout>
+
+## 5. Test in Postman (20–25 minutes)
+
+Start or restart Express with `pnpm dev`. For POST requests choose **Body → raw → JSON**. Your server must have `app.use(express.json())` before the route.
+
+| Test | Request | Expected |
+| --- | --- | --- |
+| A. Create | POST `/students` with the complete example JSON | **201** and the newly created student object, including `id` |
+| B. Read after create | GET `/students` | **200**, list includes Faye |
+| C. Read single | GET `/students/{id}` using the actual new ID | **200**, same new record |
+| D. Missing field | POST without `first_name` | **400**, `All text fields are required` |
+| E. Invalid year | POST with `"year_level": "two"` | **400**, invalid year message |
+| F. Duplicate | Repeat the same valid POST body as A | **409**, duplicate student number |
+
+**Important:** If `2026-006` is already in your table, choose a different fictional, unused student number before Test A. Repeating Test A is only for Test F; do not expect the same create request to succeed twice.
+
+For Test C, use the **actual ID returned by Test A**, not a guessed number. Notice that the success code for POST is **201**, while the GET codes are **200**.
+
+### Is it really saved?
+
+1. Stop Express with Ctrl+C.
+2. Restart with `pnpm dev`.
+3. Send GET `/students` again. Your created row should still be there.
+4. Optionally confirm in Supabase SQL Editor:
+
+```sql
+-- Show the saved students and their generated IDs
+SELECT id, student_number, first_name, last_name, course, year_level
+FROM students
+ORDER BY id;
+```
+
+The data survives restarting Express because it lives in **PostgreSQL**, not a JavaScript array.
+
+### Try a year-level rule yourself
+
+The guided handler accepts any positive whole number because the table has no maximum-year rule. In your own controller, change the validation so `year_level` accepts **only 1, 2, 3, or 4**. Decide where to check the upper limit and update the error message. The table is unchanged; this rule belongs to your API.
+
+Test `4` with a new fictional student number: expect **201**. Test `5` with another unused number: expect **400** and confirm with GET or Supabase that no row was added. Explain in one sentence why the API checks this rule even though the table does not. Keep the earlier missing-field and duplicate tests too.
+
+## 6. Explain the request flow (10 minutes)
+
+Fill in this flow using your own words:
+
+```text
+Postman sends JSON
+ → Express JSON middleware
+ → POST /students router
+ → createStudent controller validates fields
+ → parameterized SQL INSERT through pool
+ → Supabase PostgreSQL stores row and returns it
+ → controller sends HTTP 201 + JSON
+ → Postman displays the result
+```
+
+Answer these questions in one or two sentences each:
+
+1. What is the difference between GET and POST in this project?
+2. Why do we use `express.json()`?
+3. What is the purpose of `$1` through `$5`?
+4. What is the difference between **400**, **409**, and **500**?
+5. Why is `201 Created` more appropriate than `200 OK` for a successful POST?
+6. How do you know the student was permanently saved?
+
+## Troubleshooting
+
+| Symptom | First thing to check |
+| --- | --- |
+| POST returns 404 | Is `router.post('/', createStudent)` present, and is the router mounted at `/students`? |
+| `req.body` is undefined | Is `app.use(express.json())` before the router, and did Postman send raw JSON? |
+| POST always returns 409 | Use a new fictional `student_number`, then query the table to inspect existing values. |
+| POST returns 500 | Confirm the Chapter 3.1 database connection and table columns; inspect local server diagnostics without exposing secrets. |
+| POST returns 201 but GET cannot find it | Make sure both routes use the same Supabase project and `students` table. |
+| TypeScript reports missing imports | Keep the existing `Request`, `Response`, and `pool` imports from Lesson 3.1. |
+
+## What to submit
+
+Submit your Student API source with both working GET handlers and the database-backed POST handler. Exclude `.env`, database URLs, passwords, and real student information. Submit your Section 6 answers and your explanation of the 1–4 year-level rule.
+
+Use this evidence checklist. Each Postman screenshot should show the method, full URL, status, and response body:
+
+1. **Created row:** POST `/students` returns **201** and the new fictional student with a generated `id`.
+2. **Read and persistence:** GET `/students` or `/students/:id` shows that same student with **200** after you stop and restart Express. Show the restarted terminal without credentials. Also show the row and its `id` in a Supabase table or SELECT result, with the Connect panel hidden.
+3. **Invalid input:** POST without `first_name` returns **400**. Show a second **400** for `year_level: 5` after your rule change, and confirm no row was added. Keep the `"two"` test from Section 5 as a check while coding.
+4. **Duplicate:** Repeat a successful POST body. Show **409** and its message for the same `student_number`.
+5. **Year-level boundary:** Show one successful POST with `year_level: 4` and a new fictional student number. You may use this as your created-row screenshot if it also shows **201** and the generated `id`.
+
+**Next lesson:** **3.3 Updating Student Records with PUT, then PATCH** will change an existing database row. DELETE comes later.

@@ -179,6 +179,7 @@ Replace **only** the old `getStudents` function with:
 ```typescript
 export async function getStudents(_req: Request, res: Response): Promise<void> {
   try {
+    // Read the current rows from PostgreSQL
     const result = await pool.query(
       'SELECT * FROM students ORDER BY id;'
     );
@@ -214,6 +215,7 @@ Replace **only** the old `getStudentById` function in that same controller file:
 
 ```typescript
 export async function getStudentById(req: Request, res: Response): Promise<void> {
+  // The ID in the URL arrives as text
   const id = Number(req.params.id);
   if (!Number.isSafeInteger(id) || id < 1) {
     res.status(400).json({ message: 'Student ID must be a positive integer' });
@@ -221,6 +223,7 @@ export async function getStudentById(req: Request, res: Response): Promise<void>
   }
 
   try {
+    // Pass the checked ID separately from the SQL text
     const result = await pool.query(
       'SELECT * FROM students WHERE id = $1;',
       [id]
@@ -258,29 +261,7 @@ Postman → server.ts → studentRoutes.ts → studentController.ts
                                       → studentController.ts → JSON response → Postman
 ```
 
-## Lab 3.1 — Reading Student Data from PostgreSQL
-
-Use this **same Student API project**. In the remaining time, verify your `students` table and at least five fictional rows; connect Express through `src/db.ts`; make both GET routes read from PostgreSQL; return 404 for a missing ID; run all three Postman tests; and explain the request flow. Do not add database-backed writes yet.
-
-**Tiny challenge (a few minutes):** Add one more fictional student directly in Supabase SQL Editor or Table Editor. Send `GET /students` again and find the new row. **Do not change your Express source code.** The new response comes from the database, not hard-coded JavaScript data.
-
-**Submit:**
-
-1. Your source project or repository with `src/server.ts`, `src/routes/studentRoutes.ts`, `src/controllers/studentController.ts`, and `src/db.ts` (or equivalent). **Exclude `.env` and every real credential.**
-2. One Supabase table or SQL-result screenshot showing at least five rows, with no connection string visible.
-3. Three Postman screenshots: all students, one existing student, and missing ID with 404. Show method, URL, status, and body.
-4. Short answers, one or two sentences each: What changed from Chapter 2? What does `db.ts` do? Why is the URL in `.env`? Where does `req.params.id` come from? What does PostgreSQL return to the controller? Why use `$1`?
-
-| Criterion | Points |
-| --- | ---: |
-| Table and at least five rows | 15 |
-| Database connection | 20 |
-| `GET /students` reads real rows | 20 |
-| `GET /students/:id` and 404 | 20 |
-| Postman evidence | 10 |
-| Request flow explanation | 10 |
-| Reflection and complete safe submission | 5 |
-| **Total** | **100** |
+**Try it yourself (a few minutes):** Add one more fictional student directly in Supabase SQL Editor or Table Editor. Send `GET /students` again and find the new row. Do not change your Express code. This shows that the response comes from PostgreSQL. If time is short, the five starter rows are enough for the required evidence.
 
 ## If something goes wrong
 
@@ -294,4 +275,17 @@ Use this **same Student API project**. In the remaining time, verify your `stude
 | Changes to `.env` do not work | Stop the server with Ctrl+C and run `pnpm dev` again. |
 | Connection times out | Check internet access, project readiness, and that you copied the Session pooler URL from your project. |
 
-**Next lesson:** We will use database-backed POST, PUT/PATCH, and DELETE to build a complete CRUD API. Those writes are not part of this Saturday tutorial.
+## What to submit
+
+Submit the source files you used: `src/server.ts`, `src/routes/studentRoutes.ts`, `src/controllers/studentController.ts`, and `src/db.ts` (or equivalent). Check that `.env`, the database URL, passwords, and real student information are absent from the submission and screenshots.
+
+Use this evidence checklist. Each screenshot should be readable:
+
+1. **Supabase:** Show the `students` table or SQL SELECT result with the column names and at least five fictional rows. Hide the Connect panel and all credentials.
+2. **All students:** Show Postman's `GET` method, full `/students` URL, **200** status, and response body containing database rows.
+3. **One student:** Show `GET`, the full `/students/:id` URL with an ID from your table, **200**, and the one-student JSON response.
+4. **Missing student:** Show `GET`, a full URL with an unused positive ID, **404**, and `{ "message": "Student not found" }`.
+
+Also submit your request-flow sentences from Section 9 and short answers: What changed from Chapter 2? What does `db.ts` do? Why is the URL in `.env`? Where does `req.params.id` come from? What does PostgreSQL return? Why use `$1`?
+
+**Next lesson:** In [3.2 Creating Student Records with POST and PostgreSQL](/web-systems/chapter-3/creating-student-records-with-postgresql), you will save a new fictional student. The GET routes you built here will help you check the saved row.
