@@ -25,7 +25,7 @@ Quick checkpoints: SQL Editor shows five rows; terminal prints the safe connecti
 
 Likely blockers: project still provisioning, wrong database password, copied URL from the wrong project, special characters in the URL password, IPv4-only network using a direct IPv6 address, missing dotenv import, wrong `.env` location, or server not restarted. The tutorial uses Supabase's Session pooler and `sslmode=require`; review the current dashboard wording and classroom network before class. Inspect screenshots for accidentally exposed credentials.
 
-Next sequence: database-backed POST, then PUT/PATCH, then DELETE, leading to a complete CRUD API. Backend deployment to Render comes later, before React; React will consume the deployed Express API. The broader course target is a basic deployed full-stack application by December. None of these future steps are taught as completed in this lesson.
+Course sequence after 3.1: database-backed POST in 3.2, then PUT and DELETE in 3.3, leading to a complete CRUD API. Backend deployment to Render comes after Chapter 3.4 integration and testing, before React; React will consume the deployed Express API. The broader course target is a basic deployed full-stack application by December. None of these later steps are taught as completed in 3.1.
 
 ## Lesson 3.2 — Creating Student Records with POST and PostgreSQL
 
@@ -49,24 +49,26 @@ Quick checkpoints: GET works before editing; Postman shows 201 with a generated 
 
 Before class, confirm students have the Chapter 3.1 project and database access, and rehearse the POST flow in an isolated practice project. Chapter 3.1's table does not define a maximum `year_level`, so the guided handler checks for a positive whole number. The integrated challenge asks students to restrict values to 1–4 and test both boundaries; this is an application validation rule, not a database constraint. Check the exact router/controller names against the classroom project. Only fictional student data should be used.
 
-Next sequence after review: database-backed PUT in Lesson 3.3, then PATCH and DELETE. Original Chapter 2 handout sources remain unresolved.
+Next sequence after review: database-backed PUT and DELETE in Lesson 3.3. Original Chapter 2 handout sources remain unresolved.
 
-## Lesson 3.3 — Updating Student Records with PUT and PostgreSQL
+## Lesson 3.3 — Updating and Deleting Student Records
 
-**Instructor-review draft.** Allow 90–120 minutes of self-paced work. Students continue the same Chapter 3.2 practice API and Supabase `public.students` table. Rehearse the router/controller naming against the classroom project before use. PUT replaces all five editable fields for an existing ID; it does not create a row. The provided handler keeps GET and POST intact, checks a positive integer ID and complete JSON body, enforces the 1–4 year-level application rule, and uses a parameterized `UPDATE ... WHERE id = $6 RETURNING ...` through the existing pool.
+**Instructor-review drafts for October 14 and 17, 2026.** Wednesday is a two-hour discussion: 20 minutes CRUD review, 25 SQL `UPDATE`/`DELETE`/`WHERE`/`RETURNING`, 35 PUT request flow, 20 DELETE request flow, and 20 knowledge check. Saturday is a three-hour lab: 15 minutes project review, 70 PUT, 45 DELETE, 30 Postman and Supabase verification, and 20 reflection and Google Classroom submission. Both use the same Chapter 3.2 practice API and Supabase `public.students` table. No schema change, new project, PATCH requirement, or deployment is involved.
 
-Checkpoints: working GET and POST before editing; 200 PUT with the same ID; GET and a read-only Supabase SELECT show new values after Express restarts; 400 for malformed ID/body/year; 404 for an unused positive ID; 409 for a number held by a *different* row. Review the safe 500 branch in code; do not require students to disrupt a shared database to demonstrate it. Check all screenshots and submissions for credentials and real student data.
+The guided PUT handler replaces all five editable fields, checks a positive integer ID and complete JSON body, and uses `UPDATE ... WHERE id = $6 RETURNING ...` through the existing pool. It matches the guided 3.2 positive-whole-number year rule. If students completed the optional 1–4 challenge, ask them to mirror that upper bound in PUT. DELETE validates the URL ID, uses `DELETE ... WHERE id = $1 RETURNING ...`, and sends 200 confirmation. Both keep GET and POST intact. Rehearse exact router/controller names against the classroom project before class.
+
+Checkpoints: working GET and POST before editing; 200 PUT with the same ID; GET and a read-only Supabase SELECT show new values after restart; 200 DELETE for a disposable fictional row; GET and SELECT confirm it is absent; 400 for malformed input; 404 for unused positive IDs; 409 for a number held by a *different* row. Review safe 500 branches in code; do not require disruption of a shared database. Five Postman screenshots are required, plus source and reflection through the assigned Google Classroom activity. Check all screenshots and submissions for credentials and real student data.
 
 ### 3.3 grading guide (100 points)
 
 | Criterion | Points |
 | --- | ---: |
-| Existing GET and POST endpoints still work | 15 |
-| PUT route and parameterized `UPDATE` with `WHERE` and `RETURNING` | 25 |
-| ID, full-body, and 1–4 year-level validation | 20 |
-| Correct 200, 400, 404, 409, and safe 500 behavior | 15 |
-| Postman and Supabase persistence evidence | 15 |
-| Request-flow explanation and reflection answers | 10 |
+| PUT implementation and PostgreSQL `UPDATE` | 25 |
+| DELETE implementation and PostgreSQL `DELETE` | 20 |
+| Input validation and error handling | 15 |
+| Postman testing and five required screenshots | 25 |
+| Reflection and code understanding | 10 |
+| Complete and organized submission | 5 |
 | **Total** | **100** |
 
-Open question for classroom review: confirm whether the instructor wants the 1–4 rule retained as an application-only check across POST and PUT. The Chapter 3.1 table itself allows other positive years; Lesson 3.2 made the upper bound a student challenge. PATCH and DELETE are later lessons. Original Chapter 2 handout sources remain unresolved.
+Next sequence: October 24 Chapter 3.4 complete CRUD integration and testing; October 31 Chapter 4 Render backend deployment; November React fundamentals and React/Express integration; December Vercel frontend deployment, integration testing, and final full-stack project. Open classroom question: confirm whether the optional 1–4 rule should be required across POST and PUT. Original Chapter 2 handout sources remain unresolved.

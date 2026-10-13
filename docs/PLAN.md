@@ -3,19 +3,19 @@
 ## Chapter 3.1 — GET and PostgreSQL tutorial
 
 - [x] Add the first Saturday tutorial, 3.1 Connecting Express to Supabase PostgreSQL, as a read-only extension of the Chapter 2 Student API. Its activity and evidence are part of the tutorial.
-- The 3.1 lesson targets 90–120 minutes. A database-backed POST draft now follows as 3.2; PUT/PATCH and DELETE remain future work. Original Chapter 2 sources remain unresolved.
+- The 3.1 lesson targets 90–120 minutes. Database-backed POST follows as 3.2, then PUT and DELETE in 3.3. Original Chapter 2 sources remain unresolved.
 
 ## Chapter 3.2 — POST and PostgreSQL tutorial
 
 - [x] Add the 90–120 minute POST and PostgreSQL tutorial as a continuation of Chapter 3.1, using the same Student Information API and fictional records. Its year-level challenge and evidence are part of the tutorial.
 - [x] Link its canonical MDX through a thin route wrapper after 3.1; update Chapter 3 overview, navigation, and instructor notes.
-- Next: classroom rehearsal for October 10, 2026. The guided handler accepts positive whole-number `year_level` values; students then restrict them to 1–4. Confirm the classroom project structure. Plan 3.3 as database-backed PUT followed by PATCH, using the same tutorial-as-activity format. DELETE remains a later lesson; original Chapter 2 handout sources remain unresolved.
+- Classroom rehearsal for October 10, 2026: the guided handler accepts positive whole-number `year_level` values; students then restrict them to 1–4. Confirm the classroom project structure. Chapter 3.3 now follows with database-backed PUT and DELETE using the same tutorial-as-activity format; original Chapter 2 handout sources remain unresolved.
 
-## Chapter 3.3 — PUT and PostgreSQL tutorial
+## Chapter 3.3 — PUT and DELETE with PostgreSQL
 
-- [x] Add an instructor-review draft for a 90–120 minute database-backed PUT activity, preserving GET and POST in the same Student Information API practice project.
-- [x] Link the canonical MDX through a thin route wrapper after 3.2; update the chapter overview, navigation, and instructor notes.
-- Next: instructor review and isolated classroom rehearsal of PUT, including the 1–4 year-level rule across POST and PUT. PATCH and DELETE remain future lessons. Original Chapter 2 handout sources remain unresolved.
+- [x] Add instructor-review drafts for Wednesday, October 14 (two-hour CRUD, SQL, PUT and DELETE discussion) and Saturday, October 17 (three-hour guided PUT and DELETE lab), preserving GET and POST in the same Student Information API practice project.
+- [x] Link both canonical MDX materials through thin route wrappers after 3.2; update the overview, navigation, and instructor notes. Include five required Postman screenshots, Supabase checks, Google Classroom submission, and a 100-point rubric.
+- Next: instructor review and isolated classroom rehearsal, especially the Chapter 3.2 optional 1–4 year-level rule and the exact classroom controller names. October 24: Chapter 3.4 complete CRUD integration and testing. October 31: Chapter 4 Render deployment. November: React fundamentals and API integration. December: Vercel frontend deployment, integration testing, and final full-stack project. PATCH is optional; original Chapter 2 handout sources remain unresolved.
 
 ## Product direction
 

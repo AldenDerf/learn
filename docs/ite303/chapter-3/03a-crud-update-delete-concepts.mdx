@@ -1,0 +1,98 @@
+# 3.3 Wednesday Discussion: Updating and Deleting Student Records
+
+**ITE 303 — Web Systems and Technologies 2**
+
+**Instructor-review draft · Wednesday, October 14, 2026 · 2 hours**
+
+Today is for understanding and short demonstrations. On Saturday, you will add the code in the [guided PUT and DELETE lab](/web-systems/chapter-3/updating-student-records-with-put-and-postgresql). Keep using your **same Student Information API** and Supabase project from [3.1 GET](/web-systems/chapter-3/connecting-express-to-supabase-postgresql) and [3.2 POST](/web-systems/chapter-3/creating-student-records-with-postgresql). You do not need a new application or table.
+
+## Part 1 — CRUD review (20 minutes)
+
+Think of a school contact list. You can add a contact, read it, correct its details, or remove it. A database record has the same four common actions. **CRUD** is short for **Create, Read, Update, Delete**.
+
+| Action | Student API example | What happens |
+| --- | --- | --- |
+| Create | `POST /students` | Add one new row. You practiced this in 3.2. |
+| Read | `GET /students` or `GET /students/:id` | See saved rows. You practiced this in 3.1. |
+| Update | `PUT /students/:id` | Replace the editable details of one existing row. |
+| Delete | `DELETE /students/:id` | Remove one selected row. |
+
+**Quick check:** If Ana changes her course, which action fits? If a fictional practice record should be removed, which action fits? We will only use fictional records, never actual student information.
+
+## Part 2 — SQL first (25 minutes)
+
+**SQL** is the language used to ask PostgreSQL to work with rows. `UPDATE` changes existing rows. `DELETE` removes rows. `WHERE` selects which rows are affected. `RETURNING` asks PostgreSQL to show the changed or removed row. Read these examples first; **do not run them against a shared table**. Your IDs may differ.
+
+```sql
+-- Change one fictional student's course.
+UPDATE students
+SET course = 'BSCS'
+WHERE id = 7
+RETURNING id, student_number, first_name, last_name, course, year_level;
+```
+
+```sql
+-- Remove only one fictional practice row.
+DELETE FROM students
+WHERE id = 7
+RETURNING id, student_number;
+```
+
+The number `7` is an example. The `WHERE` line is essential: without it, `UPDATE` could change **every** row and `DELETE` could remove **every** row. `RETURNING` lets the server confirm what happened. If no row matches, PostgreSQL returns an empty list of rows, so the API can answer **404 Not Found**.
+
+In the Saturday code, the ID and replacement values will use **placeholders** such as `$1` instead of being inserted into the SQL text. The `pg` library sends checked values separately. This helps prevent user input from being interpreted as SQL commands.
+
+**Pair discussion:** Point to the line that selects one student in each SQL example. What might happen if that line were missing?
+
+## Part 3 — How PUT reaches one row (35 minutes)
+
+**PUT** is the HTTP method we use for a **full update** in this lesson. For `PUT http://localhost:4000/students/7`, the `7` is in the request URL. Express's `/:id` route gives it to the controller as `req.params.id`. It arrives as text, so the controller checks that it is a positive whole-number ID. The **request body** is the JSON data sent in Postman. After `express.json()` reads it, the controller sees it as `req.body`.
+
+```text
+Postman: PUT /students/7 + JSON body
+  → Express server → student router → controller checks ID and fields
+  → PostgreSQL UPDATE with WHERE id = 7
+  → controller sends 200 OK and the updated row
+```
+
+For a full PUT, send **all five editable fields**: `student_number`, `first_name`, `last_name`, `course`, and `year_level`. The database keeps the same generated `id`. Even when changing only the course, include the other four current values. A missing or invalid field gives **400 Bad Request**. An unused valid ID gives **404**. A student number already owned by another row gives **409 Conflict**. An unexpected database problem gives **500** with a general message, without exposing credentials.
+
+### Short guided demonstration
+
+Ask the instructor to show an **existing fictional row** using GET. In Postman, prepare PUT `/students/{that-id}` with **Body → raw → JSON** and `Content-Type: application/json`:
+
+```json
+{
+  "student_number": "2026-206",
+  "first_name": "Faye",
+  "last_name": "Mendoza",
+  "course": "BSIT",
+  "year_level": 3
+}
+```
+
+Do not send it until the database-backed PUT handler is ready on Saturday. Say aloud where the ID comes from, where the JSON goes, and what the `WHERE` condition will select. Use a unique fictional number when you practice; `2026-206` is only an example.
+
+**Checkpoint:** In your own words, explain the difference between `req.params.id` and `req.body`.
+
+## Part 4 — How DELETE reaches one row (20 minutes)
+
+**DELETE** asks the server to remove an existing resource. `DELETE /students/7` has an ID in the URL but **no JSON body is needed**. The controller checks the ID, runs a parameterized `DELETE FROM students WHERE id = $1 RETURNING ...`, and sends **200 OK** with a simple confirmation if PostgreSQL returned a row. It sends **404** if there was no matching row. A later GET for the deleted ID should then return 404. Use a disposable fictional practice row for Saturday, because this exercise removes that row from the database.
+
+**Checkpoint:** What two checks can show that a DELETE worked? Suggested answer: the DELETE response confirms the removed ID, and GET for the same ID returns 404. You can also verify in Supabase SQL Editor.
+
+## Part 5 — Knowledge check (20 minutes)
+
+Answer briefly before Saturday's lab:
+
+1. Match Create, Read, Update, Delete to POST, GET, PUT, DELETE.
+2. In `PUT /students/12`, where does `12` appear in Express? Where do the new details appear?
+3. Why is `WHERE id = ...` important in both SQL commands?
+4. What does `RETURNING` show? What does an empty result suggest?
+5. Why should a DELETE test use a disposable fictional record?
+6. Which response fits an invalid ID: 400 or 404? Which fits a valid ID that is absent?
+7. Draw the path from Postman to the router, controller, PostgreSQL, and back.
+
+Compare answers with a classmate or your instructor. If your internet is limited, keep this page available and write answers offline; the Saturday lab uses your local API plus your existing Supabase connection.
+
+**Saturday next step:** Open the [Chapter 3.3 guided lab](/web-systems/chapter-3/updating-student-records-with-put-and-postgresql) and implement PUT, then DELETE. PATCH is outside the required activity.
