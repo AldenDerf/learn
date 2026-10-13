@@ -1,0 +1,237 @@
+# 3.3 Updating Student Records with PUT and PostgreSQL
+
+**ITE 303 — Web Systems and Technologies 2**
+
+**Instructor-review draft · Self-paced tutorial and activity · Estimated time: 90–120 minutes**
+
+## What you will build
+
+Your Student Information API already reads students with GET and creates them with POST. In this activity, **PUT /students/:id** will replace the editable details of one existing student in Supabase PostgreSQL. Work in your separate **Student API practice project**, not in the Learn website. Use fictional information only.
+
+```text
+Postman PUT /students/7 + JSON → server.ts → studentRoutes.ts
+  → updateStudent validates ID and body → pg pool → PostgreSQL UPDATE
+  → updated row and 200 OK → Postman
+```
+
+By the end, you can explain how the request reaches a particular database row, update it safely, and prove the change survives an Express restart. Keep both database-backed GET handlers from [3.1](/web-systems/chapter-3/connecting-express-to-supabase-postgresql) and the POST handler from [3.2](/web-systems/chapter-3/creating-student-records-with-postgresql).
+
+### Learning goals
+
+1. Explain CRUD and why PUT updates an existing resource.
+2. Find the ID in `req.params` and replacement values in `req.body`.
+3. Validate both before running a parameterized SQL `UPDATE`.
+4. Explain `WHERE`, `$1`–`$6`, and `RETURNING` in that query.
+5. Test 200, 400, 404, 409, and safe 500 responses while checking GET and POST still work.
+
+## 1. Check the starting project (10 minutes)
+
+You need the Chapter 3.2 Student API, Postman, and access to its practice Supabase `public.students` table. Your project should have `src/server.ts`, `src/routes/studentRoutes.ts`, `src/controllers/studentController.ts`, and `src/db.ts`. Keep `.env` beside `package.json`, ignored by Git. Never paste its database URL into a submission.
+
+1. Run `pnpm dev` in the Student API project.
+2. Send `GET http://localhost:4000/students`. Record an **existing ID** and its current fields. Do not assume that ID 1 exists.
+3. Send `POST http://localhost:4000/students` with a *new* fictional `student_number`. Confirm **201**, then GET that returned ID. You can use this new row for your update tests.
+4. Check that `src/server.ts` loads `dotenv/config` before database-dependent imports, calls `app.use(express.json())` before `app.use('/students', studentRoutes)`, and that `src/db.ts` exports the working `pool` from 3.1.
+
+**Checkpoint:** GET returns database rows and POST can create one. Keep those functions when editing the controller. If either fails, repair the previous lesson before continuing.
+
+## 2. Understand the update before coding (15 minutes)
+
+**CRUD** names four common actions on stored data: **Create** a row (POST), **Read** a row (GET), **Update** a row (PUT in this lesson), and **Delete** a row (a later lesson). PUT asks the server to replace the editable fields of the student identified by the URL. Send **all five fields**, even if only one value changes. The database-generated `id` is not in the JSON body and does not change. We are not adding PATCH or DELETE here.
+
+For `PUT /students/7`, Express matches `/:id`; `req.params.id` is the text `"7"` from the **URL**. We must check and convert it to a positive integer. The JSON under Postman's **Body → raw → JSON** becomes `req.body` after `express.json()` runs. We must check its shape and fields before writing. A missing field is an error for this full replacement request.
+
+PostgreSQL's `UPDATE` changes rows. **`WHERE id = $6` limits the change to one ID. Without `WHERE`, an UPDATE could change every student.** `$1`–`$6` are placeholders: `pg` sends the six checked values separately from the SQL text, in array order. Do not join user input into SQL strings. `RETURNING` asks PostgreSQL to give back the row it changed. If it returns no rows, no student matched that ID.
+
+```sql
+UPDATE students
+SET student_number = $1, first_name = $2, last_name = $3,
+    course = $4, year_level = $5
+WHERE id = $6
+RETURNING id, student_number, first_name, last_name, course, year_level;
+```
+
+This query uses the existing `students` table. It does not create a new row. A successful update returns **200 OK** with the updated row. Invalid input returns **400 Bad Request**; a valid but unused ID returns **404 Not Found**. The table's `UNIQUE` rule for `student_number` can reject a number owned by another row; that conflict returns **409 Conflict**. Unexpected database failures return **500** with a safe, general message.
+
+**Think before you edit:** Which part of the request selects the row? Which part supplies its new details? What could happen if `WHERE` were missing?
+
+## 3. Connect the existing PUT route (5–10 minutes)
+
+Open `src/routes/studentRoutes.ts`. Keep the GET and POST mappings. Find the old Chapter 2 PUT acknowledgement route and make it call `updateStudent`. If it already has this mapping, only check the import. The relevant lines should be:
+
+```typescript
+import { Router } from 'express';
+import {
+  getStudents,
+  getStudentById,
+  createStudent,
+  updateStudent
+} from '../controllers/studentController';
+
+const router = Router();
+router.get('/', getStudents);
+router.get('/:id', getStudentById);
+router.post('/', createStudent);
+router.put('/:id', updateStudent);
+
+// Keep other existing Chapter 2 routes as they are.
+export default router;
+```
+
+Do not register a second `router.put('/:id', ...)` above this one. Express uses the first matching handler that sends a response. The mount path in `server.ts` makes `/:id` become `/students/:id`.
+
+## 4. Replace only the PUT controller (25–30 minutes)
+
+Open `src/controllers/studentController.ts`. Keep its Express `Request` and `Response` imports, the `pool` import from `../db`, and **all three working GET/POST functions**. Replace only the old `updateStudent` acknowledgement function with this complete handler. If the old function has another name, use that name in both the router and controller.
+
+```typescript
+export async function updateStudent(req: Request, res: Response): Promise<void> {
+  // The route parameter is text; accept only a positive, safe whole-number ID.
+  const idText = req.params.id;
+  const id = Number(idText);
+  if (!/^\d+$/.test(idText) || !Number.isSafeInteger(id) || id < 1) {
+    res.status(400).json({ message: 'Student ID must be a positive integer' });
+    return;
+  }
+
+  const body: unknown = req.body;
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    res.status(400).json({ message: 'A JSON object is required' });
+    return;
+  }
+
+  const { student_number, first_name, last_name, course, year_level } = body as Record<string, unknown>;
+  if (typeof student_number !== 'string' || student_number.trim() === '' ||
+      typeof first_name !== 'string' || first_name.trim() === '' ||
+      typeof last_name !== 'string' || last_name.trim() === '' ||
+      typeof course !== 'string' || course.trim() === '') {
+    res.status(400).json({ message: 'All text fields are required' });
+    return;
+  }
+
+  // Use the 1–4 application rule practiced at the end of Lesson 3.2.
+  if (typeof year_level !== 'number' || !Number.isInteger(year_level) ||
+      year_level < 1 || year_level > 4) {
+    res.status(400).json({ message: 'year_level must be a whole number from 1 to 4' });
+    return;
+  }
+
+  const sql = `UPDATE students
+    SET student_number = $1, first_name = $2, last_name = $3,
+        course = $4, year_level = $5
+    WHERE id = $6
+    RETURNING id, student_number, first_name, last_name, course, year_level;`;
+  const values = [
+    student_number.trim(), first_name.trim(), last_name.trim(),
+    course.trim(), year_level, id
+  ];
+
+  try {
+    const result = await pool.query(sql, values);
+    if (result.rows.length === 0) {
+      res.status(404).json({ message: 'Student not found' });
+      return;
+    }
+    res.status(200).json(result.rows[0]);
+  } catch (error: unknown) {
+    if (typeof error === 'object' && error !== null &&
+        'code' in error && error.code === '23505') {
+      res.status(409).json({ message: 'student_number already exists' });
+      return;
+    }
+    res.status(500).json({ message: 'Could not update student' });
+  }
+}
+```
+
+The `return` statements stop the handler after a response. The `WHERE` value is **sixth** because five replacement fields come first. PostgreSQL error code `23505` means a uniqueness violation. The response does not expose the raw database error, connection string, or password. The table from 3.1 has no 1–4 database constraint; this handler applies that classroom rule. Keep the 3.2 POST validation rule you currently have; changing it is outside this edit.
+
+**Checkpoint:** The controller now has GET, POST, and PUT database handlers. The router points to the new PUT handler once.
+
+## 5. Test the update in Postman (20–25 minutes)
+
+Use the **actual ID** from Section 1 in the URL. Under **Body → raw → JSON**, send all five editable fields and let Postman set `Content-Type: application/json`. Choose a fictional `student_number` not assigned to another row:
+
+```json
+{
+  "student_number": "2026-206",
+  "first_name": "Faye",
+  "last_name": "Mendoza",
+  "course": "BSIT",
+  "year_level": 3
+}
+```
+
+| Test | Request and change | Expected response |
+| --- | --- | --- |
+| A. Update | PUT `/students/{your-existing-id}` with complete JSON | **200**, updated row with the *same* `id` and new values |
+| B. Read it | GET `/students/{same-id}` | **200**, values match Test A |
+| C. Bad ID | PUT `/students/abc` with valid JSON | **400**, positive-integer ID message |
+| D. Missing field | PUT existing ID without `first_name` | **400**, required-fields message; GET still shows Test A values |
+| E. Invalid year | PUT existing ID with `year_level: 5` | **400**, 1–4 message; GET remains unchanged |
+| F. Missing student | PUT an unused positive ID with valid JSON | **404**, `Student not found` |
+| G. Duplicate number | PUT your ID using a `student_number` owned by a **different** row | **409**, `student_number already exists`; GET remains unchanged |
+| H. GET and POST regression | GET all; POST a new fictional student; GET its returned ID | **200**, **201**, **200** respectively |
+
+For Test F, first check GET on the proposed ID returns 404 so you know it is unused. For Test G, look up another row's student number with GET; reusing the **same row's own number** is allowed and is not a conflict. Use a new number for Test H. Do not send real student details.
+
+### Confirm PostgreSQL saved the change
+
+1. Stop Express with Ctrl+C and restart with `pnpm dev`.
+2. GET the updated ID again. It should still show Test A's values and the same ID.
+3. In the correct Supabase project's SQL Editor, run this read-only query, replacing the example ID with yours:
+
+```sql
+SELECT id, student_number, first_name, last_name, course, year_level
+FROM students
+WHERE id = 7;
+```
+
+The row should agree with Postman. Confirm the number of rows did not grow because of PUT. A POST from Test H **will** add a row. Hide the Connect panel and any credentials in evidence screenshots.
+
+### Understand a safe 500 response
+
+The `catch` branch is for unexpected failures, such as a database outage. **Do not break your shared or production database to create a screenshot.** You may explain it from the code. If your instructor provides an isolated practice database and asks for a failure test, stop only that practice database connection, send a valid PUT, and expect **500** with only `{ "message": "Could not update student" }`; restore the connection afterward. Do not submit raw server errors or credentials. A 500 here does not prove a row was updated.
+
+## 6. Explain and reflect (10–15 minutes)
+
+Write one or two sentences for each question:
+
+1. Which CRUD actions can this API now store in PostgreSQL? Which action is for a later lesson?
+2. Where do `req.params.id` and `req.body` come from? Why validate both?
+3. Why must this PUT body contain all five editable fields?
+4. What would happen if the `WHERE id = $6` line were removed?
+5. Match `$1` and `$6` to their entries in `values`. Why are placeholders safer than joining text into SQL?
+6. What does `RETURNING` let the API send to Postman? How does an empty `result.rows` lead to 404?
+7. How do 400, 404, 409, and 500 describe different failures? Why does the 500 body avoid raw error details?
+8. What evidence shows that PUT changed an existing row rather than creating a new one?
+
+## Troubleshooting
+
+| Symptom | Check first |
+| --- | --- |
+| PUT returns the old Chapter 2 acknowledgement | Replace the old handler, keep one PUT mapping, restart Express. |
+| PUT returns 404 for a known row | Check the exact ID and the Supabase project used by GET and PUT. |
+| PUT always returns 400 | Send **all five** fields as raw JSON; `year_level` must be a JSON number from 1 to 4. Check `express.json()` order. |
+| PUT returns 409 | Choose a number unused by another row; inspect GET or a SELECT result. |
+| PUT returns 500 | Confirm the 3.1 pool, connection, table, and columns. Diagnose locally without exposing credentials. |
+| PUT shows 200, but GET shows old values | Verify both requests use the same ID and running server/project; restart and inspect the SQL Editor row. |
+| TypeScript reports duplicate `updateStudent` | Replace the old function instead of pasting a second export with the same name. |
+
+## What to submit (10–15 minutes)
+
+Submit `src/server.ts`, `src/routes/studentRoutes.ts`, `src/controllers/studentController.ts`, and `src/db.ts` (or equivalent), plus Section 6 answers. **Do not submit `.env`, connection strings, passwords, or real student data.** Include readable Postman screenshots showing method, full URL, status, and response body for: 200 update, 200 GET after restart, both 400 input cases, 404 unused ID, 409 duplicate, and the GET/POST regression. Include a Supabase SELECT or table screenshot of the updated row with credentials hidden. Explain the safe 500 branch in words; a failure screenshot is optional only in an isolated practice environment.
+
+### 100-point rubric
+
+| Criterion | Points |
+| --- | ---: |
+| Existing GET and POST endpoints still work | 15 |
+| PUT route and parameterized `UPDATE` with `WHERE` and `RETURNING` | 25 |
+| ID, full-body, and 1–4 year-level validation | 20 |
+| Correct 200, 400, 404, 409, and safe 500 behavior | 15 |
+| Postman and Supabase persistence evidence | 15 |
+| Request-flow explanation and reflection answers | 10 |
+| **Total** | **100** |
+
+**Next:** Instructor review and classroom rehearsal of this draft. PATCH and DELETE are separate future lessons.

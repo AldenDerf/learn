@@ -11,6 +11,12 @@
 - [x] Link its canonical MDX through a thin route wrapper after 3.1; update Chapter 3 overview, navigation, and instructor notes.
 - Next: classroom rehearsal for October 10, 2026. The guided handler accepts positive whole-number `year_level` values; students then restrict them to 1–4. Confirm the classroom project structure. Plan 3.3 as database-backed PUT followed by PATCH, using the same tutorial-as-activity format. DELETE remains a later lesson; original Chapter 2 handout sources remain unresolved.
 
+## Chapter 3.3 — PUT and PostgreSQL tutorial
+
+- [x] Add an instructor-review draft for a 90–120 minute database-backed PUT activity, preserving GET and POST in the same Student Information API practice project.
+- [x] Link the canonical MDX through a thin route wrapper after 3.2; update the chapter overview, navigation, and instructor notes.
+- Next: instructor review and isolated classroom rehearsal of PUT, including the 1–4 year-level rule across POST and PUT. PATCH and DELETE remain future lessons. Original Chapter 2 handout sources remain unresolved.
+
 ## Product direction
 
 One instructor-managed platform for multiple subjects. Initial subjects:

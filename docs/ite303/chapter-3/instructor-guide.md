@@ -1,4 +1,6 @@
-# Chapter 3 instructor notes — first Saturday tutorial
+# Chapter 3 instructor notes
+
+## Lesson 3.1 — First Saturday tutorial
 
 Allow approximately 90–120 minutes of self-paced student work while checking previous submissions. Each lesson is a guided tutorial with its activity and evidence integrated into the same workflow.
 
@@ -47,4 +49,24 @@ Quick checkpoints: GET works before editing; Postman shows 201 with a generated 
 
 Before class, confirm students have the Chapter 3.1 project and database access, and rehearse the POST flow in an isolated practice project. Chapter 3.1's table does not define a maximum `year_level`, so the guided handler checks for a positive whole number. The integrated challenge asks students to restrict values to 1–4 and test both boundaries; this is an application validation rule, not a database constraint. Check the exact router/controller names against the classroom project. Only fictional student data should be used.
 
-Next sequence after review: database-backed PUT/PATCH, then DELETE. Original Chapter 2 handout sources remain unresolved.
+Next sequence after review: database-backed PUT in Lesson 3.3, then PATCH and DELETE. Original Chapter 2 handout sources remain unresolved.
+
+## Lesson 3.3 — Updating Student Records with PUT and PostgreSQL
+
+**Instructor-review draft.** Allow 90–120 minutes of self-paced work. Students continue the same Chapter 3.2 practice API and Supabase `public.students` table. Rehearse the router/controller naming against the classroom project before use. PUT replaces all five editable fields for an existing ID; it does not create a row. The provided handler keeps GET and POST intact, checks a positive integer ID and complete JSON body, enforces the 1–4 year-level application rule, and uses a parameterized `UPDATE ... WHERE id = $6 RETURNING ...` through the existing pool.
+
+Checkpoints: working GET and POST before editing; 200 PUT with the same ID; GET and a read-only Supabase SELECT show new values after Express restarts; 400 for malformed ID/body/year; 404 for an unused positive ID; 409 for a number held by a *different* row. Review the safe 500 branch in code; do not require students to disrupt a shared database to demonstrate it. Check all screenshots and submissions for credentials and real student data.
+
+### 3.3 grading guide (100 points)
+
+| Criterion | Points |
+| --- | ---: |
+| Existing GET and POST endpoints still work | 15 |
+| PUT route and parameterized `UPDATE` with `WHERE` and `RETURNING` | 25 |
+| ID, full-body, and 1–4 year-level validation | 20 |
+| Correct 200, 400, 404, 409, and safe 500 behavior | 15 |
+| Postman and Supabase persistence evidence | 15 |
+| Request-flow explanation and reflection answers | 10 |
+| **Total** | **100** |
+
+Open question for classroom review: confirm whether the instructor wants the 1–4 rule retained as an application-only check across POST and PUT. The Chapter 3.1 table itself allows other positive years; Lesson 3.2 made the upper bound a student challenge. PATCH and DELETE are later lessons. Original Chapter 2 handout sources remain unresolved.
