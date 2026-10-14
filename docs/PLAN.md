@@ -13,8 +13,8 @@
 
 ## Chapter 3.3 — PUT and DELETE with PostgreSQL
 
-- [x] Add instructor-review drafts for Wednesday, October 14 (two-hour CRUD, SQL, PUT and DELETE discussion) and Saturday, October 17 (three-hour guided PUT and DELETE lab), preserving GET and POST in the same Student Information API practice project.
-- [x] Link both canonical MDX materials through thin route wrappers after 3.2; update the overview, navigation, and instructor notes. Include five required Postman screenshots, Supabase checks, Google Classroom submission, and a 100-point rubric.
+- [x] Consolidate Chapter 3.3 into one instructor-review tutorial for CRUD, PUT, DELETE, testing, and submission, preserving GET and POST in the same Student Information API practice project. Keep session timing in the instructor guide.
+- [x] Link one canonical MDX after 3.2 and retain the former discussion URL as a hidden bookmark pointer. Include five required Postman screenshots, Supabase checks, Google Classroom submission, and a 100-point rubric.
 - Next: instructor review and isolated classroom rehearsal, especially the Chapter 3.2 optional 1–4 year-level rule and the exact classroom controller names. October 24: Chapter 3.4 complete CRUD integration and testing. October 31: Chapter 4 Render deployment. November: React fundamentals and API integration. December: Vercel frontend deployment, integration testing, and final full-stack project. PATCH is optional; original Chapter 2 handout sources remain unresolved.
 
 ## Product direction
