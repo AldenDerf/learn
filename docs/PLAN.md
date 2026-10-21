@@ -15,7 +15,14 @@
 
 - [x] Consolidate Chapter 3.3 into one instructor-review tutorial for CRUD, PUT, DELETE, testing, and submission, preserving GET and POST in the same Student Information API practice project. Keep session timing in the instructor guide.
 - [x] Link one canonical MDX after 3.2 and retain the former discussion URL as a hidden bookmark pointer. Include five required Postman screenshots, Supabase checks, Google Classroom submission, and a 100-point rubric.
-- Next: instructor review and isolated classroom rehearsal, especially the Chapter 3.2 optional 1–4 year-level rule and the exact classroom controller names. October 24: Chapter 3.4 complete CRUD integration and testing. October 31: Chapter 4 Render deployment. November: React fundamentals and API integration. December: Vercel frontend deployment, integration testing, and final full-stack project. PATCH is optional; original Chapter 2 handout sources remain unresolved.
+- Next: instructor review and isolated classroom rehearsal, especially the Chapter 3.2 optional 1–4 year-level rule and the exact classroom controller names. Chapter 3.4 now integrates complete CRUD verification as a readiness checkpoint before version-controlling the Student API with Git and publishing it to GitHub. October 31: Chapter 4 Render deployment. November: React fundamentals and API integration. December: Vercel frontend deployment, integration testing, and final full-stack project. PATCH is optional; original Chapter 2 handout sources remain unresolved.
+
+## Chapter 3.4 — Git, GitHub, and Preparing Your Student API for Deployment
+
+- [x] Author Chapter 3.4 (`docs/ite303/chapter-3/04-git-github-and-preparing-for-deployment.mdx`) as an instructor-review draft following the tutorial-as-activity format, reconciling earlier CRUD integration/testing as the mandatory Part 3 readiness checkpoint (`GET`, `POST`, `PUT`, `DELETE` verified in Postman) on the existing Chapter 3.3 Student Information API.
+- [x] Cover beginner Git/GitHub concepts, Windows installation of Git and GitHub Desktop, `.gitignore` and `.env` protection (including stop-and-rotate guidance if secrets were previously committed), `.env.example`, `README.md`, GitHub Desktop initial commit and private-first publishing, a second commit and push, and Chapter 4 Render deployment readiness.
+- [x] Link canonical MDX through a thin route wrapper (`app/web-systems/chapter-3/git-github-and-preparing-for-deployment/page.mdx`), update Chapter 3 `_meta.ts`, Chapter 3 overview, Web Systems landing summary, Lesson 3.3 forward link, `docs/ite303/chapter-3/README.md`, and `docs/ite303/chapter-3/instructor-guide.md` (with Wednesday 2h / Saturday 3h session timing, five required screenshots, three reflection questions, and the 100-point rubric).
+- Next: instructor review of Chapter 3.4 and classroom delivery, followed by Chapter 4 (Deploying the Express Student API to Render). Original Chapter 2 handout sources remain unresolved.
 
 ## Product direction
 
