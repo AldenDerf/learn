@@ -1,111 +1,113 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 660" width="100%" height="auto" role="img" aria-labelledby="flow-title flow-desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 680" width="100%" height="auto" role="img" aria-labelledby="flow-title flow-desc">
   <title id="flow-title">Student API Version Control and Deployment Workflow</title>
   <desc id="flow-desc">Four-step flow: 1. Existing Student API folder on your computer, arrow labeled Check CRUD plus protect .env with .gitignore; 2. Local Git Repository with saved history via commits, arrow labeled Publish or Push through GitHub Desktop; 3. GitHub Remote Repository for online backup and deployment source, arrow labeled Next chapter (Chapter 4); 4. Render Cloud Deployment.</desc>
 
   <defs>
     <style>
       .bg { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 2; }
-      .header-title { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 700; fill: #0f172a; }
-      .header-sub { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; fill: #475569; }
-      .card-title { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 700; fill: #0f172a; }
-      .card-sub { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13.5px; font-weight: 500; fill: #334155; }
-      .badge-text { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 12px; font-weight: 700; }
-      .step-pill-text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; font-weight: 600; fill: #1e293b; }
-      .step-num { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 800; fill: #ffffff; }
+      .header-title { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 19px; font-weight: 800; fill: #0f172a; }
+      .header-sub { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14.5px; font-weight: 600; fill: #475569; }
+      .card-title { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 17.5px; font-weight: 800; fill: #0f172a; }
+      .card-sub { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14.5px; font-weight: 500; fill: #334155; }
+      .badge-text { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 12.5px; font-weight: 700; }
+      .step-pill-text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14.5px; font-weight: 700; fill: #0f172a; }
     </style>
 
     <filter id="shadow" x="-4%" y="-6%" width="108%" height="116%">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.07" />
+      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="0.08" />
     </filter>
 
     <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569" />
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#334155" />
     </marker>
   </defs>
 
   <!-- Outer Canvas Card -->
-  <rect class="bg" x="4" y="4" width="752" height="652" rx="16" />
+  <rect class="bg" x="4" y="4" width="532" height="672" rx="16" />
 
   <!-- Diagram Header -->
-  <text x="380" y="36" text-anchor="middle" class="header-title">How Your Student API Moves from Your Laptop to the Cloud</text>
-  <text x="380" y="56" text-anchor="middle" class="header-sub">Lesson 3.4 covers Steps 1 to 3 · Chapter 4 completes Step 4</text>
+  <text x="270" y="36" text-anchor="middle" class="header-title">From Your Laptop to the Cloud</text>
+  <text x="270" y="58" text-anchor="middle" class="header-sub">Lesson 3.4 covers Steps 1–3 · Chapter 4 covers Step 4</text>
 
   <!-- ==================== BOX 1: Existing Student API Folder ==================== -->
   <g filter="url(#shadow)">
-    <rect x="70" y="76" width="620" height="92" rx="12" fill="#ffffff" stroke="#3b82f6" stroke-width="2" />
-    <rect x="70" y="76" width="10" height="92" rx="4" fill="#3b82f6" />
+    <rect x="20" y="76" width="500" height="98" rx="12" fill="#ffffff" stroke="#2563eb" stroke-width="2" />
+    <rect x="20" y="76" width="10" height="98" rx="4" fill="#2563eb" />
   </g>
-  <!-- Icon 1: Folder / Laptop -->
-  <circle cx="122" cy="122" r="24" fill="#dbeafe" />
-  <path d="M110 114 a2 2 0 0 1 2 -2 h8 l3 3 h11 a2 2 0 0 1 2 2 v13 a2 2 0 0 1 -2 2 h-22 a2 2 0 0 1 -2 -2 z" fill="#2563eb" />
+  <!-- Icon 1: Folder -->
+  <circle cx="62" cy="125" r="22" fill="#dbeafe" />
+  <path d="M50 117 a2 2 0 0 1 2 -2 h8 l3 3 h11 a2 2 0 0 1 2 2 v13 a2 2 0 0 1 -2 2 h-22 a2 2 0 0 1 -2 -2 z" fill="#1d4ed8" />
+  <!-- Badge 1 -->
+  <rect x="412" y="88" width="94" height="24" rx="12" fill="#dbeafe" />
+  <text x="459" y="104" text-anchor="middle" class="badge-text" fill="#1e40af">Offline OK</text>
   <!-- Text 1 -->
-  <text x="162" y="114" class="card-title">1. Existing Student API folder (on your computer)</text>
-  <text x="162" y="138" class="card-sub">Your Lesson 3.3 Express + TypeScript + Supabase CRUD project in VS Code</text>
-  <!-- Right Tag 1 -->
-  <rect x="572" y="92" width="102" height="24" rx="12" fill="#dbeafe" />
-  <text x="623" y="108" text-anchor="middle" class="badge-text" fill="#1d4ed8">Offline OK</text>
+  <text x="96" y="108" class="card-title">1. Existing Student API folder</text>
+  <text x="96" y="132" class="card-sub">On your computer (Lesson 3.3 CRUD project</text>
+  <text x="96" y="152" class="card-sub">with Express, TypeScript, and Supabase)</text>
 
   <!-- ==================== ARROW 1 ==================== -->
-  <line x1="380" y1="168" x2="380" y2="228" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)" />
-  <rect x="175" y="180" width="410" height="32" rx="16" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" />
-  <text x="380" y="201" text-anchor="middle" class="step-pill-text">↓ Check CRUD + protect .env with .gitignore</text>
+  <line x1="270" y1="174" x2="270" y2="234" stroke="#334155" stroke-width="2.5" marker-end="url(#arrow)" />
+  <rect x="48" y="186" width="444" height="34" rx="17" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" />
+  <text x="270" y="208" text-anchor="middle" class="step-pill-text">↓ Check CRUD + protect .env with .gitignore</text>
 
   <!-- ==================== BOX 2: Local Git Repository ==================== -->
   <g filter="url(#shadow)">
-    <rect x="70" y="236" width="620" height="92" rx="12" fill="#ffffff" stroke="#10b981" stroke-width="2" />
-    <rect x="70" y="236" width="10" height="92" rx="4" fill="#10b981" />
+    <rect x="20" y="242" width="500" height="98" rx="12" fill="#ffffff" stroke="#059669" stroke-width="2" />
+    <rect x="20" y="242" width="10" height="98" rx="4" fill="#059669" />
   </g>
   <!-- Icon 2: Git Commit Node -->
-  <circle cx="122" cy="282" r="24" fill="#d1fae5" />
-  <circle cx="122" cy="282" r="7" fill="none" stroke="#059669" stroke-width="3" />
-  <line x1="106" y1="282" x2="115" y2="282" stroke="#059669" stroke-width="3" stroke-linecap="round" />
-  <line x1="129" y1="282" x2="138" y2="282" stroke="#059669" stroke-width="3" stroke-linecap="round" />
+  <circle cx="62" cy="291" r="22" fill="#d1fae5" />
+  <circle cx="62" cy="291" r="6.5" fill="none" stroke="#047857" stroke-width="3" />
+  <line x1="47" y1="291" x2="55.5" y2="291" stroke="#047857" stroke-width="3" stroke-linecap="round" />
+  <line x1="68.5" y1="291" x2="77" y2="291" stroke="#047857" stroke-width="3" stroke-linecap="round" />
+  <!-- Badge 2 -->
+  <rect x="412" y="254" width="94" height="24" rx="12" fill="#d1fae5" />
+  <text x="459" y="270" text-anchor="middle" class="badge-text" fill="#065f46">Offline OK</text>
   <!-- Text 2 -->
-  <text x="162" y="274" class="card-title">2. Local Git Repository (saved history via commits)</text>
-  <text x="162" y="298" class="card-sub">Git tracks safe files on your computer and saves named commit checkpoints</text>
-  <!-- Right Tag 2 -->
-  <rect x="572" y="252" width="102" height="24" rx="12" fill="#d1fae5" />
-  <text x="623" y="268" text-anchor="middle" class="badge-text" fill="#047857">Offline OK</text>
+  <text x="96" y="274" class="card-title">2. Local Git Repository</text>
+  <text x="96" y="298" class="card-sub">Saved history via commits on your computer</text>
+  <text x="96" y="318" class="card-sub">(tracks safe files; ignores secret .env)</text>
 
   <!-- ==================== ARROW 2 ==================== -->
-  <line x1="380" y1="328" x2="380" y2="388" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)" />
-  <rect x="195" y="340" width="370" height="32" rx="16" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5" />
-  <text x="380" y="361" text-anchor="middle" class="step-pill-text">↓ Publish / Push through GitHub Desktop</text>
+  <line x1="270" y1="340" x2="270" y2="400" stroke="#334155" stroke-width="2.5" marker-end="url(#arrow)" />
+  <rect x="74" y="352" width="392" height="34" rx="17" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5" />
+  <text x="270" y="374" text-anchor="middle" class="step-pill-text">↓ Publish / Push through GitHub Desktop</text>
 
   <!-- ==================== BOX 3: GitHub Remote Repository ==================== -->
   <g filter="url(#shadow)">
-    <rect x="70" y="396" width="620" height="92" rx="12" fill="#ffffff" stroke="#8b5cf6" stroke-width="2" />
-    <rect x="70" y="396" width="10" height="92" rx="4" fill="#8b5cf6" />
+    <rect x="20" y="408" width="500" height="98" rx="12" fill="#ffffff" stroke="#7c3aed" stroke-width="2" />
+    <rect x="20" y="408" width="10" height="98" rx="4" fill="#7c3aed" />
   </g>
   <!-- Icon 3: Cloud Backup -->
-  <circle cx="122" cy="442" r="24" fill="#ede9fe" />
-  <path d="M114 449 h17 a6 6 0 0 0 1 -11.9 a8 8 0 0 0 -15.3 -2.1 a5.5 5.5 0 0 0 -2.7 14 z" fill="#7c3aed" />
+  <circle cx="62" cy="457" r="22" fill="#ede9fe" />
+  <path d="M54 464 h17 a6 6 0 0 0 1 -11.9 a8 8 0 0 0 -15.3 -2.1 a5.5 5.5 0 0 0 -2.7 14 z" fill="#6d28d9" />
+  <!-- Badge 3 -->
+  <rect x="392" y="420" width="114" height="24" rx="12" fill="#ede9fe" />
+  <text x="449" y="436" text-anchor="middle" class="badge-text" fill="#5b21b6">Needs Internet</text>
   <!-- Text 3 -->
-  <text x="162" y="434" class="card-title">3. GitHub Remote Repository (online backup &amp; source)</text>
-  <text x="162" y="458" class="card-sub">Stores your code and commits online on GitHub.com (without your secret .env)</text>
-  <!-- Right Tag 3 -->
-  <rect x="556" y="412" width="118" height="24" rx="12" fill="#ede9fe" />
-  <text x="615" y="428" text-anchor="middle" class="badge-text" fill="#6d28d9">Needs Internet</text>
+  <text x="96" y="440" class="card-title">3. GitHub Remote Repository</text>
+  <text x="96" y="464" class="card-sub">Online backup &amp; deployment source on GitHub</text>
+  <text x="96" y="484" class="card-sub">(stores code &amp; commits without .env)</text>
 
   <!-- ==================== ARROW 3 ==================== -->
-  <line x1="380" y1="488" x2="380" y2="548" stroke="#475569" stroke-width="2.5" stroke-dasharray="5,4" marker-end="url(#arrow)" />
-  <rect x="240" y="500" width="280" height="32" rx="16" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5" />
-  <text x="380" y="521" text-anchor="middle" class="step-pill-text">↓ Next chapter (Chapter 4)</text>
+  <line x1="270" y1="506" x2="270" y2="566" stroke="#334155" stroke-width="2.5" stroke-dasharray="5,4" marker-end="url(#arrow)" />
+  <rect x="130" y="518" width="280" height="34" rx="17" fill="#f1f5f9" stroke="#475569" stroke-width="1.5" />
+  <text x="270" y="540" text-anchor="middle" class="step-pill-text">↓ Next chapter (Chapter 4)</text>
 
   <!-- ==================== BOX 4: Render Cloud Deployment ==================== -->
   <g filter="url(#shadow)">
-    <rect x="70" y="556" width="620" height="80" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="2" stroke-dasharray="6,4" />
-    <rect x="70" y="556" width="10" height="80" rx="4" fill="#64748b" />
+    <rect x="20" y="574" width="500" height="86" rx="12" fill="#f8fafc" stroke="#475569" stroke-width="2" stroke-dasharray="6,4" />
+    <rect x="20" y="574" width="10" height="86" rx="4" fill="#475569" />
   </g>
-  <!-- Icon 4: Globe / Rocket Server -->
-  <circle cx="122" cy="596" r="22" fill="#e2e8f0" />
-  <circle cx="122" cy="596" r="11" fill="none" stroke="#334155" stroke-width="2.2" />
-  <ellipse cx="122" cy="596" rx="5" ry="11" fill="none" stroke="#334155" stroke-width="1.8" />
-  <line x1="111" y1="596" x2="133" y2="596" stroke="#334155" stroke-width="1.8" />
+  <!-- Icon 4: Globe -->
+  <circle cx="62" cy="617" r="22" fill="#e2e8f0" />
+  <circle cx="62" cy="617" r="11" fill="none" stroke="#334155" stroke-width="2.2" />
+  <ellipse cx="62" cy="617" rx="5" ry="11" fill="none" stroke="#334155" stroke-width="1.8" />
+  <line x1="51" y1="617" x2="73" y2="617" stroke="#334155" stroke-width="1.8" />
+  <!-- Badge 4 -->
+  <rect x="412" y="586" width="94" height="24" rx="12" fill="#e2e8f0" />
+  <text x="459" y="602" text-anchor="middle" class="badge-text" fill="#1e293b">Chapter 4</text>
   <!-- Text 4 -->
-  <text x="162" y="590" class="card-title">4. Render Cloud Deployment</text>
-  <text x="162" y="613" class="card-sub">Connects to GitHub and runs your live Express Student API on the internet</text>
-  <!-- Right Tag 4 -->
-  <rect x="572" y="570" width="102" height="24" rx="12" fill="#e2e8f0" />
-  <text x="623" y="586" text-anchor="middle" class="badge-text" fill="#334155">Chapter 4</text>
+  <text x="96" y="608" class="card-title">4. Render Cloud Deployment</text>
+  <text x="96" y="634" class="card-sub">Connects to GitHub to run your live API online</text>
 </svg>
