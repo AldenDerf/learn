@@ -1,0 +1,681 @@
+# 3.4 Introduction to Git, GitHub, and Preparing Your Student API for Deployment
+
+**ITE 303 — Web Systems and Technologies 2**
+
+**Instructor-review draft · Guided tutorial and activity**
+
+Read each section carefully before following the steps on your computer. You can complete the local project checks, `.gitignore` setup, `README.md` writing, local commits, and reflection questions **offline**, then sign in and publish to GitHub when your internet connection is stable.
+
+## What you will build
+
+In Lessons [3.1](/web-systems/chapter-3/connecting-express-to-supabase-postgresql), [3.2](/web-systems/chapter-3/creating-student-records-with-postgresql), and [3.3](/web-systems/chapter-3/updating-student-records-with-put-and-postgresql), you connected your **Student Information API** to Supabase PostgreSQL and implemented full **CRUD** operations (`GET`, `POST`, `PUT`, and `DELETE`).
+
+Right now, your code lives only in one folder on your computer. If your laptop breaks, or if you accidentally delete a working file while editing, your work can be lost. Also, cloud hosting platforms need a safe place to read your backend code when deploying your server online.
+
+In this lesson, you will verify that your existing **Student Information API** still works, protect your private `.env` database credentials, track your project history with **Git**, and publish your code to **GitHub** using **GitHub Desktop**.
+
+```text
+Existing Student API folder (on your computer)
+   ↓  Check CRUD + protect .env with .gitignore
+Local Git Repository (saved history via commits)
+   ↓  Publish / Push through GitHub Desktop
+GitHub Remote Repository (online backup & deployment source)
+   ↓  Next chapter (Chapter 4)
+Render Cloud Deployment
+```
+
+<Callout type="important">
+
+**Use your existing Student Information API project from Lesson 3.3.** Do **not** create a new Express project for this lesson, and do **not** work inside the `learn` website repository.
+
+</Callout>
+
+### Learning goals
+
+By the end of this lesson, you will be able to:
+
+1. Explain what version control is and how **Git** and **GitHub** differ.
+2. Define key terms: **repository**, **local repository**, **remote repository**, **commit**, **push**, **pull**, **branch**, and **main branch**.
+3. Install and verify **Git** and **GitHub Desktop** on Windows.
+4. Check your existing Student API's CRUD endpoints and prepare `.gitignore`, `.env.example`, and `README.md` so secrets are never uploaded.
+5. Create commits and publish your project to GitHub using **GitHub Desktop**.
+6. Make a second meaningful change, commit it locally, and push it to GitHub.
+7. Explain how your GitHub repository prepares your backend for deployment in Chapter 4.
+
+---
+
+## Part 1 — Why Developers Need Git and GitHub
+
+### Saving versions of a school project
+
+Imagine writing a major school paper. Have you ever saved files like this?
+
+```text
+research-paper.docx
+research-paper-v2.docx
+research-paper-final.docx
+research-paper-FINAL-fixed-real.docx
+```
+
+When a software project has many files (`server.ts`, `db.ts`, `studentRoutes.ts`, `studentController.ts`, `package.json`), copying the whole folder every time you make a change becomes messy and confusing. It is hard to remember what changed between folders or which copy actually works.
+
+**Version control** solves this problem. It tracks changes inside your existing project folder over time. Instead of duplicating folders, you save a clear checkpoint whenever a feature works.
+
+### What is Git?
+
+**Git** is a free version control tool installed on your computer. It watches your project folder, records what lines changed in which files, and lets you save named checkpoints called **commits**. Git works on your computer even when you have **no internet connection**.
+
+### What is GitHub?
+
+**GitHub** is a website that stores Git projects online. When you connect your local Git project to GitHub, you can upload your saved checkpoints to the cloud, back up your code, share your work with your instructor, and connect your project to deployment platforms.
+
+### Git vs. GitHub at a glance
+
+| Feature | Git | GitHub |
+| --- | --- | --- |
+| **What it is** | Version control software installed on your computer | A website and cloud service that hosts Git repositories online |
+| **Where it runs** | Locally on your computer | On the internet (in your web browser) |
+| **Needs internet?** | No — you can inspect changes and create commits offline | Yes — uploading (`push`) or downloading (`pull`) requires internet |
+| **Main job** | Track file changes and save version history | Back up repositories, support collaboration, and connect to deployment services |
+
+### Why developers save changes through commits
+
+Instead of saving one giant update at the end of the semester, developers save small, logical checkpoints (**commits**) as they build:
+
+- **Clear history:** Each commit has a short message explaining *what* changed and *why* (for example, `Add README endpoint summary`).
+- **Safety net:** If a future edit breaks your API, you can compare your broken file against the last working commit to see exactly what changed.
+- **Deployment readiness:** Cloud platforms deploy specific commits from your repository so they know exactly which version of your code to run.
+
+### Key terms explained simply
+
+Read through this table before setting up your tools. You will use these words throughout the rest of the course:
+
+| Term | Simple meaning |
+| --- | --- |
+| **Repository (repo)** | A project folder that Git is tracking, including all its files and saved version history. |
+| **Local repository** | The copy of the repository stored on your own computer. |
+| **Remote repository** | The copy of the repository stored online on GitHub. |
+| **Commit** | A saved snapshot (checkpoint) of your tracked files at a specific moment, labeled with a short message. |
+| **Push** | Uploading your new local commits from your computer to your remote repository on GitHub. |
+| **Pull** | Downloading new commits from GitHub to update the local repository on your computer. |
+| **Branch** | A separate workspace timeline inside a repository where you can try changes without affecting the main working version. |
+| **Main branch (`main`)** | The default, primary branch of a repository where the official working version of your project lives. |
+
+We will keep all of our work on the **`main` branch** in this lesson. You do not need complex branching workflows yet.
+
+---
+
+## Part 2 — Installing Required Tools
+
+You need three things for this workflow: **Git**, a **GitHub account**, and **GitHub Desktop**. Follow these Windows steps in order. If a tool is already installed on your machine, verify it using the checkpoint steps.
+
+### 1. Install Git for Windows
+
+Git does the version tracking behind the scenes on your computer.
+
+1. Open the official Git download page for Windows: [https://git-scm.com/install/windows](https://git-scm.com/install/windows) (or visit [https://git-scm.com/downloads](https://git-scm.com/downloads) and choose **Windows**).
+2. Download the **64-bit Git for Windows Setup** installer.
+3. Run the downloaded `.exe` installer.
+4. Click **Next** through the setup screens to accept the standard default options.
+   - If the installer asks for the default branch name, choose **`main`** (or leave the default and let GitHub Desktop set `main` later).
+5. Click **Install**, then **Finish**.
+
+### 2. Verify your Git installation
+
+1. Open **PowerShell** or **Command Prompt** (or a new terminal inside VS Code).
+2. Run this command to ask Git for its installed version:
+
+```powershell
+# Check that Git is installed and reachable in the terminal
+git --version
+```
+
+**Expected result:** You should see output similar to `git version 2.47.1.windows.1` (your exact version number may be newer).
+
+**If it fails:** If you see `'git' is not recognized`, close your terminal window completely (and close VS Code if it was open during installation), open a fresh terminal window, and run `git --version` again so Windows reloads its program path.
+
+### 3. Create or sign into your GitHub account
+
+1. Open [https://github.com](https://github.com) in your web browser.
+2. If you already have an account, click **Sign in**.
+3. If you do not have an account yet, click **Sign up** and follow the steps using an email address you can access.
+4. **Verify your email address** if GitHub sends you a confirmation email. Unverified accounts cannot publish repositories.
+
+**Tip:** Choose a clean, professional username (for example, based on your name). You will use this account for your projects and deployment chapters.
+
+### 4. Install GitHub Desktop
+
+**GitHub Desktop** gives you a clear visual window to see changed files, create commits, and publish to GitHub without memorizing terminal commands.
+
+1. Open the official GitHub Desktop download page: [https://desktop.github.com/download/](https://desktop.github.com/download/).
+2. Click **Download for Windows (64-bit)**.
+3. Run the downloaded installer. GitHub Desktop installs automatically and opens when ready.
+
+### 5. Sign into GitHub Desktop
+
+1. In GitHub Desktop, click **Sign in to GitHub.com** (or go to **File → Options → Accounts** and click **Sign in** next to GitHub.com).
+2. Your web browser will open and ask you to authorize GitHub Desktop. Click **Authorize desktop** and allow the browser to open GitHub Desktop again.
+3. In the **Configure Git** screen (or under **File → Options → Git**), confirm that your **Name** and **Email** are filled in. Git attaches this name and email as the author label on every commit you create.
+4. Click **Finish** or **Save**.
+
+### 6. Confirm your existing Student API folder is on your computer
+
+Before opening your project in GitHub Desktop, locate your **Student Information API** folder from Lesson 3.3 on your computer.
+
+1. Open your project folder in **VS Code**.
+2. Check the Explorer sidebar to confirm you are inside your **Student API project** (the folder that contains `package.json`, `.env`, and `src/server.ts`), **not** an empty folder and **not** a parent folder like `Desktop` or `Documents`.
+
+**Checkpoint:** `git --version` prints a version number, you are signed into GitHub in your browser, GitHub Desktop shows your GitHub account under **File → Options → Accounts**, and your Student API folder is open in VS Code.
+
+---
+
+## Part 3 — Preparing the Existing Student API
+
+Never upload a project to GitHub before checking that it runs and confirming that private credentials are excluded. Complete all ten steps below in your existing **Student Information API** project.
+
+### Step 1 — Open your Student API project
+
+In VS Code, make sure your terminal is opened directly inside your Student API project root folder (where `package.json` lives).
+
+### Step 2 — Check that the API still runs
+
+Start your development server:
+
+```powershell
+# Start the Express + TypeScript development server
+pnpm dev
+```
+
+**Expected result:** The terminal shows that your server is running (for example, `Practice API: http://localhost:4000`) without crashing. Keep this terminal running while you test in Postman.
+
+### Step 3 — Verify GET, POST, PUT, and DELETE using Postman
+
+Before saving your project to Git, confirm that your complete **CRUD** API from Lessons 3.1–3.3 works against your Supabase `public.students` table. Open **Postman** and run this quick readiness check using **fictional student data only**:
+
+| CRUD Check | Request in Postman | Expected Result |
+| --- | --- | --- |
+| **1. Read all (`GET`)** | `GET http://localhost:4000/students` | **200 OK** with a JSON array of student rows from Supabase. |
+| **2. Create (`POST`)** | `POST http://localhost:4000/students` with a new fictional JSON student body | **201 Created** with the newly inserted row and its generated `id`. |
+| **3. Read one (`GET`)** | `GET http://localhost:4000/students/{new-id}` | **200 OK** with that same student object. |
+| **4. Update (`PUT`)** | `PUT http://localhost:4000/students/{new-id}` with all five editable fields | **200 OK** with the updated student values and the same `id`. |
+| **5. Delete (`DELETE`)** | `DELETE http://localhost:4000/students/{disposable-id}` | **200 OK** confirming deletion (and a follow-up `GET` on that ID returns **404**). |
+
+<Callout type="info">
+
+**Screenshot 1 tip:** Capture **Screenshot 1** now while your Student API is running and Postman shows your working CRUD check! Make sure no database password or `.env` file is visible in the screenshot.
+
+</Callout>
+
+If any route fails, check your Lesson 3.1, 3.2, or 3.3 code and fix it before continuing.
+
+### Step 4 — Check your existing folder structure
+
+Look at the files inside your Student API folder. After completing steps 6–10 below, your project folder should look like this:
+
+```text
+student-api/
+├── .env                  # Local secret file — MUST BE IGNORED by Git
+├── .env.example          # Safe placeholder template — tracked by Git
+├── .gitignore            # Tells Git which files/folders to ignore
+├── package.json          # Project scripts and dependency list
+├── pnpm-lock.yaml        # Exact dependency versions (or package-lock.json)
+├── README.md             # Project overview and setup guide
+├── tsconfig.json         # TypeScript configuration (if present in your setup)
+└── src/
+    ├── db.ts
+    ├── server.ts
+    ├── controllers/
+    │   └── studentController.ts
+    └── routes/
+        └── studentRoutes.ts
+```
+
+### Step 5 — Check `package.json`
+
+Open `package.json` and confirm that it lists:
+
+- Your `dev` script (for example, `"dev": "tsx watch src/server.ts"` or `"tsx src/server.ts"`).
+- Your dependencies (`express`, `pg`, `dotenv`) and devDependencies (`typescript`, `tsx`, `@types/express`, `@types/pg`, etc.).
+
+Because `package.json` records every package your project needs, you do **not** need to upload the massive `node_modules` folder to GitHub. Anyone (including a cloud deployment server) can recreate `node_modules` by running `pnpm install`.
+
+### Step 6 — Ensure `.gitignore` exists
+
+A **`.gitignore`** file is a plain text file in the root of your project. Each line tells Git which files or folders it must **ignore** and **never upload** to GitHub.
+
+Look in the root of your Student API project (beside `package.json`). If `.gitignore` does not exist yet, create a new file named exactly **`.gitignore`** (notice the leading dot `.` and no `.txt` extension at the end).
+
+### Step 7 & Step 8 — Ensure `.env` and `node_modules` are excluded
+
+Open `.gitignore` and make sure it includes at least these rules:
+
+```gitignore
+# Dependency directory (recreated with pnpm install)
+node_modules/
+
+# Private environment variables and database credentials (NEVER commit!)
+.env
+.env.*
+!.env.example
+
+# Build output and logs
+dist/
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
+```
+
+**Why each section matters:**
+- `node_modules/` contains thousands of downloaded library files. Uploading it wastes data, slows down Git, and is unnecessary because `package.json` already lists your dependencies.
+- `.env` and `.env.*` contain your real `DATABASE_URL` and Supabase database password. If uploaded to GitHub, anyone with access to the repository could read, modify, or delete your database.
+- `!.env.example` tells Git: *"Even though `.env.*` is ignored, **do** allow the safe `.env.example` template file."*
+
+<Callout type="warning">
+
+**Critical security rule: `.gitignore` only prevents UNTRACKED files from being added.**
+
+Adding `.env` to `.gitignore` does **not** erase secrets that were *already committed* to Git history in the past.
+
+**What to do if you already committed `.env` or a real password:**
+1. **STOP** immediately — do **not** publish or push the repository to GitHub.
+2. **Inform your instructor** before taking further steps.
+3. **Rotate (change) your exposed database password** in your Supabase project settings so the old leaked password can no longer be used.
+4. Wait for instructor guidance to create a clean repository state. Do not try random terminal commands from the internet to rewrite Git history on your own.
+
+</Callout>
+
+### Step 9 — Create or check `.env.example` with placeholder values only
+
+Since `.env` is ignored by Git, how will you (or your instructor) remember which environment variables your project needs when setting it up on another computer or server?
+
+Developers include a file named **`.env.example`**. It shows the exact variable names required by the app, but uses **fake placeholder text** instead of real passwords.
+
+In the root of your Student API project (beside `package.json`), create **`.env.example`** with this content:
+
+```env
+# Copy this file to .env and replace with your own Supabase Session pooler URL.
+# Never put your real database password or host in .env.example!
+DATABASE_URL="postgresql://USER:YOUR_PASSWORD_HERE@HOST:5432/postgres?sslmode=require"
+PORT=4000
+```
+
+Double-check that `.env.example` contains **zero** real passwords, real Supabase project IDs, or real connection strings.
+
+### Step 10 — Add a simple `README.md` if one does not exist
+
+Every good GitHub repository has a **`README.md`** file in the root folder. GitHub automatically displays this file on the front page of your repository so visitors know what your project does and how to run it.
+
+Create (or update) **`README.md`** beside `package.json`:
+
+````markdown
+# Student Information API
+
+A RESTful backend API built with Node.js, Express, TypeScript, and Supabase PostgreSQL for **ITE 303 — Web Systems and Technologies 2**.
+
+## Features
+
+- Read all student records (`GET /students`)
+- Read a single student record by ID (`GET /students/:id`)
+- Create a new student record (`POST /students`)
+- Update an existing student record (`PUT /students/:id`)
+- Delete a student record (`DELETE /students/:id`)
+
+## Local Setup
+
+1. Install dependencies:
+   ```bash
+   pnpm install
+   ```
+2. Copy `.env.example` to `.env` and add your private Supabase PostgreSQL connection string.
+3. Start the development server:
+   ```bash
+   pnpm dev
+   ```
+````
+
+Save all open files in VS Code (`Ctrl+S`).
+
+**Checkpoint:** Your API passes CRUD tests in Postman, `.gitignore` excludes `.env` and `node_modules/`, `.env.example` uses only safe placeholders, and `README.md` is saved in your project root.
+
+---
+
+## Part 4 — Introduction to GitHub Desktop
+
+Now you will use **GitHub Desktop** to turn your Student API folder into a Git repository, create your first commit, and publish it to GitHub.
+
+*(Note: Steps 1–6 work completely offline. Steps 7–9 require an internet connection.)*
+
+### Step 1 — Open GitHub Desktop
+
+Launch **GitHub Desktop** on your computer.
+
+### Step 2 — Add or initialize your existing Student API project as a repository
+
+Because your Student API folder already exists on your computer, you will point GitHub Desktop to that folder:
+
+1. In the top menu bar, click **File → Add local repository...** (or press `Ctrl+O`).
+2. Click **Choose...** and select your **Student Information API** folder (the folder that contains `package.json` and `src/`).
+3. Look at what GitHub Desktop displays:
+   - **If your folder is not a Git repository yet:** GitHub Desktop will show a message saying: *"This directory does not appear to be a Git repository. Would you like to create a repository here instead?"* Click the blue link **create a repository**.
+   - In the **Create a New Repository** dialog that opens:
+     - verify **Name** matches your folder name (or shows your folder path),
+     - leave **Initialize this repository with a README** unchecked if you already created `README.md` in Part 3,
+     - leave **Git Ignore** set to **None** (so it keeps the `.gitignore` you created in Part 3),
+     - click **Create Repository**.
+   - **If your folder was already initialized with Git earlier:** Click **Add Repository** and it will open directly.
+
+*(Notice that if you created a repository here using the dialog, GitHub Desktop may automatically create an `Initial commit` for you, or show your files under the **Changes** tab. Check both the **Changes** tab and the **History** tab on the left panel to see where you are.)*
+
+### Step 3 — Inspect changed files
+
+Look at the left sidebar of GitHub Desktop under the **Changes** tab (or click the **History** tab if GitHub Desktop already created the initial commit during Step 2):
+
+- When you click any file in the list (such as `src/server.ts`, `.gitignore`, or `README.md`), the right panel shows the file contents (**green lines** with `+` show lines being added).
+- You should see your project files such as:
+  - `.env.example`
+  - `.gitignore`
+  - `package.json`
+  - `README.md`
+  - `src/db.ts`
+  - `src/server.ts`
+  - `src/controllers/studentController.ts`
+  - `src/routes/studentRoutes.ts`
+
+### Step 4 — Check that sensitive files are excluded (Security Checkpoint!)
+
+Look carefully at the file list in GitHub Desktop (**Changes** and **History** tabs):
+
+1. Confirm that **`.env` does NOT appear anywhere** in the list.
+2. Confirm that **`node_modules/` does NOT appear anywhere** in the list.
+3. Click `.env.example` and `src/db.ts` to preview their lines on the right side, and verify that your real Supabase password is **not** written inside any tracked file.
+
+**Wait!** If `.env` appears in the list, **uncheck** it immediately, check your `.gitignore` spelling from Part 3, and make sure `.env` disappears before committing.
+
+### Step 5 — Write a meaningful commit message
+
+If your files are listed under the **Changes** tab waiting to be committed:
+
+1. Ensure the checkboxes next to your safe project files are checked.
+2. Look at the bottom-left box of GitHub Desktop:
+   - In the **Summary (required)** field, type a clear, short message describing this checkpoint, for example:
+     ```text
+     Initial commit of Student Information CRUD API
+     ```
+   - In the **Description** box (optional), you can add a short note like:
+     ```text
+     Includes Express routes, PostgreSQL CRUD controller, .gitignore, .env.example, and README.
+     ```
+
+### Step 6 — Create the first commit
+
+1. Click the blue **Commit to main** button at the bottom-left of GitHub Desktop.
+2. Click the **History** tab near the top-left of GitHub Desktop.
+3. You will see your commit recorded in your **local repository** with your name, timestamp, commit message, and the exact files saved in that snapshot.
+
+<Callout type="info">
+
+**Screenshot 2 tip:** Open the **History** tab in GitHub Desktop showing your repository name, your first commit, and the list of safe committed files (`.gitignore`, `.env.example`, `package.json`, `README.md`, `src/...`). Capture this window for **Screenshot 2**.
+
+</Callout>
+
+Notice that your commit is saved **locally on your computer**. It is not on GitHub.com yet!
+
+### Step 7 — Publish the repository to GitHub
+
+When you have an internet connection, upload your local repository to GitHub:
+
+1. In GitHub Desktop's top bar (or center panel), click **Publish repository**.
+2. A **Publish Repository** window appears:
+   - **Name:** `student-information-api` (or your existing project folder name).
+   - **Description:** `ITE 303 Student Information CRUD API with Express, TypeScript, and PostgreSQL`
+   - **Keep this code private:** **Leave this box CHECKED (recommended for classroom work)** unless your instructor explicitly tells your class to make it public.
+3. Click **Publish Repository**.
+4. Wait a few seconds while GitHub Desktop uploads your commits to GitHub.com. When it finishes, the top bar button changes to **Fetch origin**.
+
+#### Why repository visibility and access matter
+
+- **Private repository (recommended default):** Only you and people you invite as collaborators can view your code on GitHub. This is safer for school assignments while you are learning, **but your instructor cannot open your repository link to grade your work unless you grant them access** (or unless your instructor directs the class to use a specific classroom setup or public visibility).
+- **Public repository:** Anyone on the internet can view and download your code. Never make a repository public unless you are 100% certain `.env` and all personal or database secrets have never been committed, and your instructor approves public repositories.
+
+### Step 8 — Open the repository in your browser
+
+1. In GitHub Desktop, click **Repository → View on GitHub** from the top menu (or press `Ctrl+Shift+G`), or click the **View on GitHub** button on the main screen.
+2. Your web browser will open your new remote repository page on `https://github.com/<your-username>/<your-repo-name>`.
+
+### Step 9 — Verify the uploaded files
+
+Look at your repository page on GitHub.com and check:
+
+- [ ] Your `src/` folder, `package.json`, `.gitignore`, `.env.example`, and `README.md` are visible.
+- [ ] Your `README.md` text is rendered neatly below the file list.
+- [ ] **`.env` is NOT listed.**
+- [ ] **`node_modules` is NOT listed.**
+
+<Callout type="info">
+
+**Screenshot 3 tip:** Capture your browser showing your GitHub repository page with the uploaded project files (`src`, `.gitignore`, `.env.example`, `package.json`, `README.md`) and your repository URL visible. Save this as **Screenshot 3**.
+
+</Callout>
+
+---
+
+### Optional: What do the equivalent Git terminal commands look like?
+
+**You do not need to memorize or run these commands for this lesson.** GitHub Desktop runs Git commands for you in the background. Later in your career, you may see developers run these four commands in a terminal:
+
+```bash
+# 1. Check which files have been modified or are untracked
+git status
+
+# 2. Stage safe changed files so they are ready for the next commit
+git add .
+
+# 3. Save a commit snapshot locally with a message
+git commit -m "Initial commit of Student Information CRUD API"
+
+# 4. Upload local commits to the remote repository on GitHub
+git push
+```
+
+In this chapter, continue using **GitHub Desktop** so you can visually inspect every file before committing.
+
+---
+
+## Part 5 — Making Another Commit
+
+In real development, you do not just upload your project once. Every time you improve your code or documentation, you make a new **commit** and **push** it to GitHub. Let's practice that cycle now.
+
+### Commit vs. Push — What is the difference?
+
+Beginners often confuse **Commit** and **Push**. Keep this distinction clear:
+
+| Action | Where it happens | Needs internet? | What it does |
+| --- | --- | --- | --- |
+| **Commit** | On your computer (**local repository**) | **No** | Saves a checkpoint of your changes in your local Git history. GitHub.com does **not** see it yet. |
+| **Push** | From your computer to **GitHub.com** (**remote repository**) | **Yes** | Uploads your saved local commits to GitHub so the online repository matches your computer. |
+
+You must always **Commit** your changes first before you can **Push** them to GitHub.
+
+### Practice: Add an API endpoints table to `README.md`
+
+Let's make a small, meaningful improvement to your project documentation.
+
+#### 1. Edit and save `README.md`
+
+Open `README.md` in VS Code and add an **API Endpoints** section at the bottom of the file:
+
+```markdown
+## API Endpoints
+
+| Method | Endpoint | Description | Success Status |
+| --- | --- | --- | --- |
+| `GET` | `/students` | Retrieve all student records | `200 OK` |
+| `GET` | `/students/:id` | Retrieve one student by ID | `200 OK` |
+| `POST` | `/students` | Create a new student record | `201 Created` |
+| `PUT` | `/students/:id` | Replace all editable fields of a student | `200 OK` |
+| `DELETE` | `/students/:id` | Delete a student record by ID | `200 OK` |
+```
+
+Save `README.md` (`Ctrl+S`).
+
+#### 2. Open GitHub Desktop and inspect the diff
+
+Switch to **GitHub Desktop** and click the **Changes** tab on the left:
+
+- You will see `README.md` listed as modified (with a yellow dot icon).
+- Click `README.md`. The right side shows the **diff** (the difference between the previous commit and your current file). The new lines you just added are highlighted in **green** with `+` signs.
+
+#### 3. Write a meaningful commit message
+
+In the bottom-left **Summary** box, write a short message that explains *what* this specific change does:
+
+```text
+Document Student API endpoints table in README
+```
+
+*(Avoid vague messages like `update` or `asdf`. A good commit message tells future you what changed without having to open every file.)*
+
+#### 4. Commit locally
+
+Click **Commit to main**.
+
+Now switch to the **History** tab in GitHub Desktop. You will see **at least two commits** listed in your repository history! Notice the small upward arrow (`↑ 1`) next to your branch or on the **Push origin** button — that arrow tells you that your computer has **1 local commit** that has not been uploaded to GitHub yet.
+
+<Callout type="info">
+
+**Screenshot 4 tip:** In GitHub Desktop's **History** tab, make sure **at least two meaningful commits** are visible in the list. Capture this view for **Screenshot 4**.
+
+</Callout>
+
+#### 5. Push to GitHub
+
+Click **Push origin** in the top bar of GitHub Desktop (or press `Ctrl+P`). Wait a moment for the upload to complete.
+
+#### 6. Verify the change on GitHub
+
+Go back to your repository page in your web browser and **refresh the page**:
+
+- Scroll down to the `README.md` preview — your new **API Endpoints** table is now live on GitHub!
+- Click the **Commits** count (for example, **2 commits**) near the top-right of the file table to see both commits recorded on GitHub.
+
+<Callout type="info">
+
+**Screenshot 5 tip:** Capture your GitHub repository page in the browser showing either your updated `README.md` with the new **API Endpoints** table or the GitHub **Commits** page showing your pushed commit history. Save this as **Screenshot 5**.
+
+</Callout>
+
+---
+
+## Part 6 — Preparing for Chapter 4
+
+Congratulations! Your Student Information API is now version-controlled with Git and backed up on GitHub.
+
+### How everything connects
+
+Here is how your work in Chapters 2 and 3 leads directly into **Chapter 4**:
+
+```text
+1. Student API Project (VS Code + Express + TypeScript + Supabase Pool)
+       ↓
+2. Git (tracks changes & saves local commits on your computer)
+       ↓
+3. GitHub (stores your remote repository online without .env secrets)
+       ↓
+4. Chapter 4: Render Deployment Platform (connects to GitHub, builds your app, and runs it online)
+```
+
+### Important facts before Chapter 4
+
+1. **Uploading code to GitHub does NOT run your server online:** GitHub stores your **source code files**, not a running Express server. Your API still only runs when you start `pnpm dev` on your computer. In **Chapter 4**, you will connect your GitHub repository to **Render**, a cloud hosting platform that will actually build and run your Express backend on a public URL.
+2. **How will Render know your `DATABASE_URL` if `.env` is not on GitHub?** Because `.env` is excluded by `.gitignore` for security, Render will not get your database password from GitHub. Instead, hosting platforms like Render provide a secure **Environment Variables** settings screen in their dashboard. In Chapter 4, you will configure `DATABASE_URL` privately inside Render's settings — never inside your GitHub code.
+3. **Never share your actual credentials:** Do not paste your `.env` file, your Supabase password, or your `DATABASE_URL` into README files, commit messages, screenshots, or Google Classroom comments.
+
+---
+
+## Part 7 — Guided Activity and Google Classroom Submission
+
+Complete the steps in Parts 1–5 using your existing **Student Information API** project, then submit your work in Google Classroom.
+
+### Required repository checklist
+
+Before submitting, check that your GitHub repository contains:
+
+- [ ] Your existing Express + TypeScript Student API source code (`src/server.ts`, `src/db.ts`, `src/routes/studentRoutes.ts`, `src/controllers/studentController.ts`).
+- [ ] Working database-backed CRUD handlers (`GET` all, `GET` by ID, `POST`, `PUT`, `DELETE`).
+- [ ] `package.json` with your project dependencies and scripts.
+- [ ] `.gitignore` excluding `.env` and `node_modules/`.
+- [ ] `.env.example` containing **placeholder values only** (no real database passwords or hosts).
+- [ ] A clear, beginner-friendly `README.md`.
+- [ ] At least **two meaningful commits** in the repository history.
+- [ ] **Zero** `.env` files, real database connection strings, or private credentials in any commit.
+
+### Required screenshots (5 total)
+
+Save five clear, readable screenshots as PNG or JPG files. **Never show `.env` contents, database passwords, or Supabase connection strings in any screenshot:**
+
+1. **`01-crud-verified.png` — Existing Student API running & CRUD verified:** Show your Student API running (`pnpm dev`) and Postman demonstrating a successful database-backed CRUD check (or clearly documented CRUD test evidence from your existing project).
+2. **`02-github-desktop-first-commit.png` — First commit in GitHub Desktop:** Show GitHub Desktop with your Student API repository and your first commit (showing safe tracked files and no `.env`).
+3. **`03-github-repo-files.png` — Published GitHub repository page:** Show your GitHub repository page in the browser displaying the uploaded project files (`src`, `.gitignore`, `.env.example`, `package.json`, `README.md`).
+4. **`04-github-desktop-two-commits.png` — At least two commits in GitHub Desktop:** Show the **History** tab in GitHub Desktop displaying at least two meaningful commits.
+5. **`05-github-pushed-update.png` — Final pushed change on GitHub:** Show your GitHub repository page in the browser displaying your pushed second commit (either the updated `README.md` on the repo page or the GitHub commit history page).
+
+### Reflection questions
+
+Answer these three questions in 1–3 simple sentences each when submitting in Google Classroom:
+
+1. **What is the difference between Git and GitHub?**
+2. **What is the difference between Commit and Push?**
+3. **Why should `.env` not be uploaded to GitHub?**
+
+### How to give your instructor access to a Private repository
+
+If you published your repository as **Private** (recommended), your instructor will see a `404 Not Found` page unless you grant access:
+
+1. Ask your instructor for the official **instructor GitHub username** (or follow the classroom link posted in Google Classroom).
+2. On your GitHub repository page, click **Settings** (top tab bar) → **Collaborators** (left sidebar).
+3. Click **Add people**, enter the GitHub username provided by your instructor in class, and click **Add to this repository**.
+4. *(Only change repository visibility to Public if your instructor explicitly instructs the class to do so and you have verified that no secrets were ever committed.)*
+
+### Submitting in Google Classroom
+
+Open the assigned **Chapter 3.4 Activity** in Google Classroom and submit:
+
+1. **Your GitHub repository URL** (for example, `https://github.com/your-username/student-information-api`).
+2. **All five required screenshots** (`01-crud-verified.png` through `05-github-pushed-update.png`).
+3. **Your answers to the three reflection questions.**
+
+Click **Turn in** and confirm that Google Classroom shows your work as submitted.
+
+---
+
+## Troubleshooting
+
+| Problem / What you see | How to fix it |
+| --- | --- |
+| `'git' is not recognized` in terminal | Close VS Code and all terminal windows completely, reopen a new terminal after installing Git, and run `git --version` again. |
+| `.env` or `node_modules` shows up in GitHub Desktop **Changes** | Do **not** commit yet! Open `.gitignore` in the root of your Student API project, make sure `.env` and `node_modules/` are written on their own lines, save `.gitignore`, and check GitHub Desktop again. |
+| I already committed `.env` or my database password by mistake | **Stop immediately.** Do not publish or push to GitHub. Inform your instructor, and rotate (change) your database password in Supabase right away. |
+| GitHub Desktop says *"Publish repository"* failed | Check your internet connection, confirm you verified your GitHub email address, and check **File → Options → Accounts** to make sure you are signed into GitHub.com. |
+| I clicked **Commit to main**, but my change is not on GitHub.com | Remember: **Commit** only saves to your computer! Click **Push origin** in the top bar of GitHub Desktop, then refresh your browser. |
+| GitHub Desktop shows thousands of files from my `Desktop` or `Documents` folder | You accidentally added your parent user folder instead of your `student-api` project folder. In GitHub Desktop, right-click the repository name → **Remove...** (keep files on disk), then add **only** your `student-api` project folder. |
+| Postman CRUD check fails before Git setup | Make sure `pnpm dev` is running in your Student API folder, `.env` has your working Supabase Session pooler URL from Lesson 3.1, and your internet connection can reach Supabase. |
+
+---
+
+## Grading Rubric (100 Points)
+
+Your submission will be graded using the following criteria:
+
+| Criterion | Points | What we look for |
+| --- | ---: | --- |
+| **Existing CRUD project prepared and checked** | 20 | Continues the existing Chapter 3 Student Information API (`GET`, `POST`, `PUT`, `DELETE` verified with Postman), includes `package.json` and a clear `README.md`. |
+| **Git and GitHub setup** | 15 | Git and GitHub Desktop properly configured with author details and connected to a valid GitHub account. |
+| **Repository published correctly** | 20 | Complete project structure (`src/`, `package.json`, `.gitignore`, `.env.example`, `README.md`) uploaded to GitHub and accessible to the instructor. |
+| **Two meaningful commits** | 15 | Commit history contains at least two clear, descriptive commits showing initial setup and a follow-up improvement pushed to GitHub. |
+| **Security and `.gitignore`** | 15 | `.gitignore` properly excludes `.env` and `node_modules/`; `.env.example` uses safe placeholders only; zero credentials or private data exposed in commits or screenshots. |
+| **Evidence and reflection** | 15 | All five required screenshots are clear and complete, and all three reflection questions are answered accurately in your own words. |
+| **Total** | **100** | |
+
+**Next chapter:** In **Chapter 4**, you will connect your published GitHub repository to **Render**, configure your production environment variables securely, and deploy your Student Information API to the cloud!
