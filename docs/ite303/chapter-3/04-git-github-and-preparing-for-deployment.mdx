@@ -539,7 +539,9 @@ Whenever you hit a deployment or testing error that you cannot solve immediately
 **Strict AI Security Rule: NEVER paste passwords or private connection strings into AI tools!**
 
 Before copying any terminal output, `.env` line, or Render log into an AI prompt, **always replace sensitive values with placeholders**:
-- **UNSAFE (Never do this):** `My DATABASE_URL is postgresql://postgres.abcdefgh:MySecretPass123@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres`
+The unsafe prompt below illustrates sharing a private value; its displayed URL is deliberately fictional and nonfunctional. Never substitute or share a real credential.
+
+- **UNSAFE (Never do this with a real value):** `My DATABASE_URL is postgresql://USER:REDACTED@example.invalid:5432/postgres`
 - **SAFE (Sanitized):** `My DATABASE_URL format is postgresql://USER:REDACTED_PASSWORD@HOST:5432/postgres?sslmode=require`
 
 </Callout>
