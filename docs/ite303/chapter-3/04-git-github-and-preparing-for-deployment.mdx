@@ -1,246 +1,209 @@
-# 3.4 Introduction to Git, GitHub, and Preparing Your Student API for Deployment
+# 3.4 Deploying Your Student REST API Using GitHub and Render
 
 **ITE 303 — Web Systems and Technologies 2**
 
-Read each section carefully before following the steps on your computer. You can complete the local project checks, `.gitignore` setup, `README.md` writing, local commits, and reflection questions **offline**, then sign in and publish to GitHub when your internet connection is stable.
+**Guided tutorial and activity**
+
+Read each concept carefully before carrying out the technical steps on your computer. You can complete the local readiness checks, `.gitignore` setup, `README.md` documentation, and local Git commits offline, then publish to GitHub, deploy to Render, and run live Postman tests when your internet connection is active.
 
 ## What you will build
 
-In Lessons [3.1](/web-systems/chapter-3/connecting-express-to-supabase-postgresql), [3.2](/web-systems/chapter-3/creating-student-records-with-postgresql), and [3.3](/web-systems/chapter-3/updating-student-records-with-put-and-postgresql), you connected your **Student Information API** to Supabase PostgreSQL and implemented full **CRUD** operations (`GET`, `POST`, `PUT`, and `DELETE`).
+In Activities [3.1](/web-systems/chapter-3/connecting-express-to-supabase-postgresql), [3.2](/web-systems/chapter-3/creating-student-records-with-postgresql), and [3.3](/web-systems/chapter-3/updating-student-records-with-put-and-postgresql), you connected your **Student Management REST API** (your Student Information API practice project) to **Supabase PostgreSQL** and implemented full **CRUD** endpoints (`GET`, `POST`, `PUT`, and `DELETE`).
 
-Right now, your code lives only in one folder on your computer. If your laptop breaks, or if you accidentally delete a working file while editing, your work can be lost. Also, cloud hosting platforms need a safe place to read your backend code when deploying your server online.
+Right now, your Express server runs only on your own laptop (`http://localhost:4000`). If you close your laptop or turn off `pnpm dev`, your API stops working—and no other computer, classmate, instructor, or frontend web app on the internet can reach it.
 
-In this lesson, you will verify that your existing **Student Information API** still works, protect your private `.env` database credentials, track your project history with **Git**, and publish your code to **GitHub** using **GitHub Desktop**.
+In this activity, you will prepare your existing Activity 3.3 project for production, protect your private `.env` credentials, track your code with **Git**, publish your repository to **GitHub** using **GitHub Desktop**, deploy your live backend server to **Render**, test your public HTTPS endpoints with **Postman**, and practice responsible **AI-assisted troubleshooting**.
 
-![Workflow diagram showing four steps: 1. Existing Student API folder on your computer, followed by Check CRUD and protect .env with .gitignore; 2. Local Git Repository with saved history via commits, followed by Publish or Push through GitHub Desktop; 3. GitHub Remote Repository for online backup and deployment source, followed by Next chapter (Chapter 4); 4. Render Cloud Deployment.](/images/ite303/chapter-3/git-github-deployment-flow.svg)
+![Workflow diagram showing four steps: 1. Existing Student API folder on your computer, followed by Verify CRUD, PORT, and protect .env with .gitignore; 2. Local Git Repository with saved history via commits, followed by Publish or Push through GitHub Desktop; 3. GitHub Remote Repository for online backup and deployment source, followed by Connect repo and set DATABASE_URL on Render; 4. Render Cloud Deployment running your live HTTPS API for Postman tests.](/images/ite303/chapter-3/git-github-deployment-flow.svg)
 
 <Callout type="important">
 
-**Use your existing Student Information API project from Lesson 3.3.** Do **not** create a new Express project for this lesson, and do **not** work inside the `learn` website repository.
+**Continue directly from your Activity 3.3 project.** Do **not** rebuild your CRUD routes from scratch, do **not** create a new database table, and do **not** work inside the `learn` course website repository.
 
 </Callout>
 
 ### Learning goals
 
-By the end of this lesson, you will be able to:
+By the end of this activity, you will be able to:
 
-1. Explain what version control is and how **Git** and **GitHub** differ.
-2. Define key terms: **repository**, **local repository**, **remote repository**, **commit**, **push**, **pull**, **branch**, and **main branch**.
-3. Install and verify **Git** and **GitHub Desktop** on Windows.
-4. Check your existing Student API's CRUD endpoints and prepare `.gitignore`, `.env.example`, and `README.md` so secrets are never uploaded.
-5. Create commits and publish your project to GitHub using **GitHub Desktop**.
-6. Make a second meaningful change, commit it locally, and push it to GitHub.
-7. Explain how your GitHub repository prepares your backend for deployment in Chapter 4.
+1. Explain why a `localhost` API is private to your machine and how cloud deployment makes a backend publicly accessible.
+2. Describe the roles of **Git**, **GitHub**, **GitHub Desktop**, **Render**, **Supabase**, and **Postman** in a modern deployment workflow.
+3. Prepare an existing Express + TypeScript project for production by configuring `process.env.PORT`, verifying `package.json` build/start scripts, and protecting secrets with `.gitignore` and `.env.example`.
+4. Initialize a local Git repository, review diffs, create descriptive commits, and publish code to GitHub using **GitHub Desktop**.
+5. Deploy a Node.js Web Service on **Render**, configure `DATABASE_URL` securely, and read build and runtime logs.
+6. Verify live `GET`, `POST`, `PUT`, `DELETE`, `404`, and `400` behavior against your deployed Render HTTPS URL in **Postman** using disposable fictional data.
+7. Use AI assistants responsibly to diagnose build, configuration, database, and HTTP errors without exposing credentials.
 
 ---
 
-## Part 1 — Why Developers Need Git and GitHub
+## Part A — Introduction
 
-### Saving versions of a school project
+### Why `localhost` is not publicly accessible
 
-Imagine writing a major school paper. Have you ever saved files like this?
+When you start your server with `pnpm dev` and send requests to `http://localhost:4000/students`, the word **`localhost`** is a special networking nickname that always means *"this exact computer I am typing on right now."*
+
+- Your Postman app can reach `localhost:4000` because Postman and your Express server are running on the **same machine**.
+- If you send the link `http://localhost:4000/students` to your instructor or a classmate, it will **fail** on their computer because *their* computer is not running your Express server.
+- As soon as you press `Ctrl+C`, close VS Code, or shut down your laptop, your local server stops completely.
+
+### The purpose of deploying a backend API
+
+**Deployment** means putting your backend application onto a cloud server that stays connected to the internet and runs your program for you. Once deployed:
+
+- Your API receives a **public `https://` URL** (for example, `https://student-api-xxxx.onrender.com`).
+- Anyone with the link (such as your instructor grading your API in Postman, or a React frontend application you build next) can send HTTP requests to your backend over the internet.
+- Your cloud server connects to your existing **Supabase PostgreSQL** database in the cloud, reading and updating the same `students` table.
+
+### How each tool fits together
+
+Before touching any settings, make sure you understand the exact job of each tool in your workflow:
+
+| Tool | Role in this activity | What it does (and does NOT do) |
+| --- | --- | --- |
+| **Git** | Local version control software | Installed on your computer. Watches your project folder and saves checkpoints (**commits**) offline. |
+| **GitHub** | Online code hosting platform | Stores a copy of your Git repository in the cloud so you have an online backup and a source for deployment. **GitHub does NOT run your Express server.** |
+| **GitHub Desktop** | Visual Git application | Gives you a clear graphical window on your computer to inspect changed files, create commits, and upload (`push`) to GitHub without memorizing terminal commands. |
+| **Render** | Cloud application hosting platform | Connects to your GitHub repository, downloads your code, installs dependencies, runs your start command, and hosts your live Express API at a public `https://` URL. |
+| **Supabase** | Cloud PostgreSQL database host | Stores your `public.students` table in the cloud. Both your local server and your deployed Render server connect to Supabase using `DATABASE_URL`. |
+| **Postman** | HTTP API testing client | Sends `GET`, `POST`, `PUT`, and `DELETE` requests to your API (first on `localhost`, then on your public Render URL) so you can inspect status codes and JSON responses. |
+
+### The overall deployment workflow
+
+Throughout this activity, your project will move through four connected stages:
 
 ```text
-research-paper.docx
-research-paper-v2.docx
-research-paper-final.docx
-research-paper-FINAL-fixed-real.docx
+Stage 1: Local Project (VS Code + Express + TypeScript + Supabase Pool)
+   │  Verify CRUD works locally, support process.env.PORT,
+   │  check package.json scripts, and protect .env with .gitignore
+   ▼
+Stage 2: Local Git Repository (Git + GitHub Desktop)
+   │  Review safe files, confirm .env is excluded,
+   │  and save descriptive local commits
+   ▼
+Stage 3: Remote GitHub Repository (GitHub.com)
+   │  Publish / Push commits online so Render can read your source code
+   ▼
+Stage 4: Cloud Production Server (Render + Supabase + Postman)
+      Connect GitHub repo to Render, add DATABASE_URL in Render Environment,
+      deploy live HTTPS Web Service, and test CRUD endpoints in Postman
 ```
-
-When a software project has many files (`server.ts`, `db.ts`, `studentRoutes.ts`, `studentController.ts`, `package.json`), copying the whole folder every time you make a change becomes messy and confusing. It is hard to remember what changed between folders or which copy actually works.
-
-**Version control** solves this problem. It tracks changes inside your existing project folder over time. Instead of duplicating folders, you save a clear checkpoint whenever a feature works.
-
-### What is Git?
-
-**Git** is a free version control tool installed on your computer. It watches your project folder, records what lines changed in which files, and lets you save named checkpoints called **commits**. Git works on your computer even when you have **no internet connection**.
-
-### What is GitHub?
-
-**GitHub** is a website that stores Git projects online. When you connect your local Git project to GitHub, you can upload your saved checkpoints to the cloud, back up your code, share your work with your instructor, and connect your project to deployment platforms.
-
-### Git vs. GitHub at a glance
-
-| Feature | Git | GitHub |
-| --- | --- | --- |
-| **What it is** | Version control software installed on your computer | A website and cloud service that hosts Git repositories online |
-| **Where it runs** | Locally on your computer | On the internet (in your web browser) |
-| **Needs internet?** | No — you can inspect changes and create commits offline | Yes — uploading (`push`) or downloading (`pull`) requires internet |
-| **Main job** | Track file changes and save version history | Back up repositories, support collaboration, and connect to deployment services |
-
-### Why developers save changes through commits
-
-Instead of saving one giant update at the end of the semester, developers save small, logical checkpoints (**commits**) as they build:
-
-- **Clear history:** Each commit has a short message explaining *what* changed and *why* (for example, `Add README endpoint summary`).
-- **Safety net:** If a future edit breaks your API, you can compare your broken file against the last working commit to see exactly what changed.
-- **Deployment readiness:** Cloud platforms deploy specific commits from your repository so they know exactly which version of your code to run.
-
-### Key terms explained simply
-
-Read through this table before setting up your tools. You will use these words throughout the rest of the course:
-
-| Term | Simple meaning |
-| --- | --- |
-| **Repository (repo)** | A project folder that Git is tracking, including all its files and saved version history. |
-| **Local repository** | The copy of the repository stored on your own computer. |
-| **Remote repository** | The copy of the repository stored online on GitHub. |
-| **Commit** | A saved snapshot (checkpoint) of your tracked files at a specific moment, labeled with a short message. |
-| **Push** | Uploading your new local commits from your computer to your remote repository on GitHub. |
-| **Pull** | Downloading new commits from GitHub to update the local repository on your computer. |
-| **Branch** | A separate workspace timeline inside a repository where you can try changes without affecting the main working version. |
-| **Main branch (`main`)** | The default, primary branch of a repository where the official working version of your project lives. |
-
-We will keep all of our work on the **`main` branch** in this lesson. You do not need complex branching workflows yet.
 
 ---
 
-## Part 2 — Installing Required Tools
+## Part B — Preparing the Existing Student API
 
-You need three things for this workflow: **Git**, a **GitHub account**, and **GitHub Desktop**. Follow these Windows steps in order. If a tool is already installed on your machine, verify it using the checkpoint steps.
+Never publish or deploy a project before verifying that it works locally, supports cloud port assignment, has valid startup scripts, and excludes private credentials. Complete all eight preparation steps below in your existing **Activity 3.3 Student API** project.
 
-### 1. Install Git for Windows
+### Step 1 — Open your Activity 3.3 project
 
-Git does the version tracking behind the scenes on your computer.
+1. Open **VS Code** and open your existing **Student API project folder** from Activity 3.3.
+2. Confirm in the Explorer sidebar that you opened the **project root folder** (the folder directly containing `package.json`, `.env`, and `src/`), not a parent folder such as `Desktop` or `Documents`.
+3. Open a terminal inside VS Code (`Ctrl+\``) and confirm the terminal prompt points to your project root.
 
-1. Open the official Git download page for Windows: [https://git-scm.com/install/windows](https://git-scm.com/install/windows) (or visit [https://git-scm.com/downloads](https://git-scm.com/downloads) and choose **Windows**).
-2. Download the **64-bit Git for Windows Setup** installer.
-3. Run the downloaded `.exe` installer.
-4. Click **Next** through the setup screens to accept the standard default options.
-   - If the installer asks for the default branch name, choose **`main`** (or leave the default and let GitHub Desktop set `main` later).
-5. Click **Install**, then **Finish**.
+### Step 2 — Confirm that existing CRUD operations work locally
 
-### 2. Verify your Git installation
-
-1. Open **PowerShell** or **Command Prompt** (or a new terminal inside VS Code).
-2. Run this command to ask Git for its installed version:
+Start your local development server:
 
 ```powershell
-# Check that Git is installed and reachable in the terminal
-git --version
-```
-
-**Expected result:** You should see output similar to `git version 2.47.1.windows.1` (your exact version number may be newer).
-
-**If it fails:** If you see `'git' is not recognized`, close your terminal window completely (and close VS Code if it was open during installation), open a fresh terminal window, and run `git --version` again so Windows reloads its program path.
-
-### 3. Create or sign into your GitHub account
-
-1. Open [https://github.com](https://github.com) in your web browser.
-2. If you already have an account, click **Sign in**.
-3. If you do not have an account yet, click **Sign up** and follow the steps using an email address you can access.
-4. **Verify your email address** if GitHub sends you a confirmation email. Unverified accounts cannot publish repositories.
-
-**Tip:** Choose a clean, professional username (for example, based on your name). You will use this account for your projects and deployment chapters.
-
-### 4. Install GitHub Desktop
-
-**GitHub Desktop** gives you a clear visual window to see changed files, create commits, and publish to GitHub without memorizing terminal commands.
-
-1. Open the official GitHub Desktop download page: [https://desktop.github.com/download/](https://desktop.github.com/download/).
-2. Click **Download for Windows (64-bit)**.
-3. Run the downloaded installer. GitHub Desktop installs automatically and opens when ready.
-
-### 5. Sign into GitHub Desktop
-
-1. In GitHub Desktop, click **Sign in to GitHub.com** (or go to **File → Options → Accounts** and click **Sign in** next to GitHub.com).
-2. Your web browser will open and ask you to authorize GitHub Desktop. Click **Authorize desktop** and allow the browser to open GitHub Desktop again.
-3. In the **Configure Git** screen (or under **File → Options → Git**), confirm that your **Name** and **Email** are filled in. Git attaches this name and email as the author label on every commit you create.
-4. Click **Finish** or **Save**.
-
-### 6. Confirm your existing Student API folder is on your computer
-
-Before opening your project in GitHub Desktop, locate your **Student Information API** folder from Lesson 3.3 on your computer.
-
-1. Open your project folder in **VS Code**.
-2. Check the Explorer sidebar to confirm you are inside your **Student API project** (the folder that contains `package.json`, `.env`, and `src/server.ts`), **not** an empty folder and **not** a parent folder like `Desktop` or `Documents`.
-
-**Checkpoint:** `git --version` prints a version number, you are signed into GitHub in your browser, GitHub Desktop shows your GitHub account under **File → Options → Accounts**, and your Student API folder is open in VS Code.
-
----
-
-## Part 3 — Preparing the Existing Student API
-
-Never upload a project to GitHub before checking that it runs and confirming that private credentials are excluded. Complete all ten steps below in your existing **Student Information API** project.
-
-### Step 1 — Open your Student API project
-
-In VS Code, make sure your terminal is opened directly inside your Student API project root folder (where `package.json` lives).
-
-### Step 2 — Check that the API still runs
-
-Start your development server:
-
-```powershell
-# Start the Express + TypeScript development server
+# Start your local development server
 pnpm dev
 ```
 
-**Expected result:** The terminal shows that your server is running (for example, `Practice API: http://localhost:4000`) without crashing. Keep this terminal running while you test in Postman.
+Open **Postman** and run a quick readiness check against `http://localhost:4000/students` using **fictional student records only**:
 
-### Step 3 — Verify GET, POST, PUT, and DELETE using Postman
-
-Before saving your project to Git, confirm that your complete **CRUD** API from Lessons 3.1–3.3 works against your Supabase `public.students` table. Open **Postman** and run this quick readiness check using **fictional student data only**:
-
-| CRUD Check | Request in Postman | Expected Result |
+| Local Readiness Check | Request in Postman | Expected Result |
 | --- | --- | --- |
 | **1. Read all (`GET`)** | `GET http://localhost:4000/students` | **200 OK** with a JSON array of student rows from Supabase. |
-| **2. Create (`POST`)** | `POST http://localhost:4000/students` with a new fictional JSON student body | **201 Created** with the newly inserted row and its generated `id`. |
+| **2. Create (`POST`)** | `POST http://localhost:4000/students` with a new disposable fictional student JSON body | **201 Created** with the newly inserted row and its generated `id`. |
 | **3. Read one (`GET`)** | `GET http://localhost:4000/students/{new-id}` | **200 OK** with that same student object. |
 | **4. Update (`PUT`)** | `PUT http://localhost:4000/students/{new-id}` with all five editable fields | **200 OK** with the updated student values and the same `id`. |
-| **5. Delete (`DELETE`)** | `DELETE http://localhost:4000/students/{disposable-id}` | **200 OK** confirming deletion (and a follow-up `GET` on that ID returns **404**). |
+| **5. Delete (`DELETE`)** | `DELETE http://localhost:4000/students/{new-id}` | Expected success status (**200 OK** in our Activity 3.3 handler) confirming deletion, followed by **404 Not Found** when you `GET` that same ID. |
 
-<Callout type="info">
+**Checkpoint:** All CRUD routes work locally against Supabase before you change any deployment settings. If any route fails locally, fix your Activity 3.3 code first—deploying broken code to Render will only produce broken cloud routes.
 
-**Screenshot 1 tip:** Capture **Screenshot 1** now while your Student API is running and Postman shows your working CRUD check! Make sure no database password or `.env` file is visible in the screenshot.
+### Step 3 — Ensure your server supports `process.env.PORT`
 
-</Callout>
+On your laptop, you probably chose port `4000`. However, when **Render** runs your server in the cloud, Render automatically assigns its own port number through an environment variable named **`PORT`** (`process.env.PORT`). If your code hard-codes `app.listen(4000)` and ignores `process.env.PORT`, Render may fail to detect your running service.
 
-If any route fails, check your Lesson 3.1, 3.2, or 3.3 code and fix it before continuing.
+Open `src/server.ts` and inspect how your port is defined:
 
-### Step 4 — Check your existing folder structure
+```typescript
+// Read Render's assigned PORT in production, or fall back to 4000 on your laptop
+const PORT = Number(process.env.PORT) || 4000;
 
-Look at the files inside your Student API folder. After completing steps 6–10 below, your project folder should look like this:
-
-```text
-student-api/
-├── .env                  # Local secret file — MUST BE IGNORED by Git
-├── .env.example          # Safe placeholder template — tracked by Git
-├── .gitignore            # Tells Git which files/folders to ignore
-├── package.json          # Project scripts and dependency list
-├── pnpm-lock.yaml        # Exact dependency versions (or package-lock.json)
-├── README.md             # Project overview and setup guide
-├── tsconfig.json         # TypeScript configuration (if present in your setup)
-└── src/
-    ├── db.ts
-    ├── server.ts
-    ├── controllers/
-    │   └── studentController.ts
-    └── routes/
-        └── studentRoutes.ts
+app.listen(PORT, () => {
+  console.log(`Student API listening on port ${PORT}`);
+});
 ```
 
-### Step 5 — Check `package.json`
+**Why this works:**
+- On your computer, if `PORT` is not set (or is set to `4000` in `.env`), `PORT` becomes `4000`.
+- On Render, Render injects its own `process.env.PORT` value automatically, and your Express server listens on the exact port Render expects.
 
-Open `package.json` and confirm that it lists:
+### Step 4 — Inspect `package.json` and verify build and production startup scripts
 
-- Your `dev` script (for example, `"dev": "tsx watch src/server.ts"` or `"tsx src/server.ts"`).
-- Your dependencies (`express`, `pg`, `dotenv`) and devDependencies (`typescript`, `tsx`, `@types/express`, `@types/pg`, etc.).
+When Render deploys your repository, it needs to know how to **install packages**, how to **build** your project (if needed), and how to **start** your server in production.
 
-Because `package.json` records every package your project needs, you do **not** need to upload the massive `node_modules` folder to GitHub. Anyone (including a cloud deployment server) can recreate `node_modules` by running `pnpm install`.
+Open `package.json` in your Student API project and inspect three sections:
 
-### Step 6 — Ensure `.gitignore` exists
+1. **Dependencies vs. DevDependencies:**
+   - Ensure runtime packages (`express`, `pg`, `dotenv`) are under `"dependencies"`.
+   - Look at how your TypeScript code runs. There are two common ways students set up TypeScript in Express:
 
-A **`.gitignore`** file is a plain text file in the root of your project. Each line tells Git which files or folders it must **ignore** and **never upload** to GitHub.
+#### Option A — Compiling TypeScript to JavaScript (Recommended for production)
 
-Look in the root of your Student API project (beside `package.json`). If `.gitignore` does not exist yet, create a new file named exactly **`.gitignore`** (notice the leading dot `.` and no `.txt` extension at the end).
+In this standard production pattern, TypeScript (`tsc`) compiles your `src/*.ts` files into plain JavaScript inside a `dist/` folder during the **build** step, and Node.js runs the compiled JavaScript during the **start** step.
 
-### Step 7 & Step 8 — Ensure `.env` and `node_modules` are excluded
+If your `tsconfig.json` has `"rootDir": "./src"` and `"outDir": "./dist"` (or if you add them now), your `package.json` scripts can look like this:
 
-Open `.gitignore` and make sure it includes at least these rules:
+```json
+{
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  }
+}
+```
+
+#### Option B — Running TypeScript directly with `tsx`
+
+If your project does not emit a `dist/` folder and instead runs `src/server.ts` directly with `tsx`, your `package.json` scripts might look like this:
+
+```json
+{
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc --noEmit",
+    "start": "tsx src/server.ts"
+  }
+}
+```
+
+*(Note: If `"start"` uses `tsx`, make sure `tsx` is available when Render runs—either move `tsx` into `"dependencies"` or ensure Render installs devDependencies during the build step.)*
+
+#### Test your build and start scripts locally!
+
+Before moving on, stop `pnpm dev` (`Ctrl+C`) and test your exact production commands in your VS Code terminal:
+
+```powershell
+# 1. Test your build script
+pnpm build
+
+# 2. Test your production start script
+pnpm start
+```
+
+**Checkpoint:** Both `pnpm build` and `pnpm start` succeed on your computer without errors, and `GET http://localhost:4000/students` still returns `200 OK` while `pnpm start` is running. Stop `pnpm start` with `Ctrl+C` when finished.
+
+### Step 5 — Protect `.env` using `.gitignore`
+
+Your `.env` file holds your real Supabase `DATABASE_URL` and database password. A **`.gitignore`** file is a plain text file in your project root that tells Git which files and folders it must **ignore** and **never track or upload**.
+
+Check the root of your Student API project (beside `package.json`). Create or update **`.gitignore`** (starts with a dot `.`, with no `.txt` extension) so it contains at least these rules:
 
 ```gitignore
-# Dependency directory (recreated with pnpm install)
+# Dependency directory (recreated automatically during install)
 node_modules/
 
 # Private environment variables and database credentials (NEVER commit!)
@@ -248,69 +211,55 @@ node_modules/
 .env.*
 !.env.example
 
-# Build output and logs
+# Compiled build output and log files
 dist/
 *.log
 
-# Operating system files
+# Operating system metadata files
 .DS_Store
 Thumbs.db
 ```
 
-**Why each section matters:**
-- `node_modules/` contains thousands of downloaded library files. Uploading it wastes data, slows down Git, and is unnecessary because `package.json` already lists your dependencies.
-- `.env` and `.env.*` contain your real `DATABASE_URL` and Supabase database password. If uploaded to GitHub, anyone with access to the repository could read, modify, or delete your database.
-- `!.env.example` tells Git: *"Even though `.env.*` is ignored, **do** allow the safe `.env.example` template file."*
+**Why each rule matters:**
+- `node_modules/` contains thousands of downloaded library files. Uploading it wastes bandwidth and slows down Git; Render will install dependencies automatically from `package.json` and `pnpm-lock.yaml`.
+- `.env` and `.env.*` block your real database credentials from ever entering Git.
+- `!.env.example` makes an exception so Git *does* allow the safe placeholder file `.env.example`.
+- `dist/` excludes compiled JavaScript output so your repository stays clean and Render builds fresh code on every deploy.
 
-<Callout type="warning">
+### Step 6 — Understand and create `.env.example`
 
-**Critical security rule: `.gitignore` only prevents UNTRACKED files from being added.**
+Because `.env` is ignored by Git, anyone inspecting your repository (or setting it up on another machine) needs to know *which* environment variable names your program expects without seeing your real secret values.
 
-Adding `.env` to `.gitignore` does **not** erase secrets that were *already committed* to Git history in the past.
-
-**What to do if you already committed `.env` or a real password:**
-1. **STOP** immediately — do **not** publish or push the repository to GitHub.
-2. **Inform your instructor** before taking further steps.
-3. **Rotate (change) your exposed database password** in your Supabase project settings so the old leaked password can no longer be used.
-4. Wait for instructor guidance to create a clean repository state. Do not try random terminal commands from the internet to rewrite Git history on your own.
-
-</Callout>
-
-### Step 9 — Create or check `.env.example` with placeholder values only
-
-Since `.env` is ignored by Git, how will you (or your instructor) remember which environment variables your project needs when setting it up on another computer or server?
-
-Developers include a file named **`.env.example`**. It shows the exact variable names required by the app, but uses **fake placeholder text** instead of real passwords.
-
-In the root of your Student API project (beside `package.json`), create **`.env.example`** with this content:
+Create or inspect **`.env.example`** in your project root beside `package.json`:
 
 ```env
-# Copy this file to .env and replace with your own Supabase Session pooler URL.
-# Never put your real database password or host in .env.example!
+# Copy this file to .env for local development.
+# On Render, add DATABASE_URL in the Render Environment dashboard.
+# NEVER put real database passwords or private hostnames in this file!
 DATABASE_URL="postgresql://USER:YOUR_PASSWORD_HERE@HOST:5432/postgres?sslmode=require"
 PORT=4000
 ```
 
-Double-check that `.env.example` contains **zero** real passwords, real Supabase project IDs, or real connection strings.
+Confirm that `.env.example` contains **only fake placeholder text** and zero real passwords or Supabase project IDs.
 
-### Step 10 — Add a simple `README.md` if one does not exist
+### Step 7 — Document your project in `README.md`
 
-Every good GitHub repository has a **`README.md`** file in the root folder. GitHub automatically displays this file on the front page of your repository so visitors know what your project does and how to run it.
-
-Create (or update) **`README.md`** beside `package.json`:
+Every professional repository includes a **`README.md`** file in the project root explaining what the API does, how to run it locally, and which endpoints it provides. Create or update **`README.md`** beside `package.json`:
 
 ````markdown
-# Student Information API
+# Student Management REST API
 
 A RESTful backend API built with Node.js, Express, TypeScript, and Supabase PostgreSQL for **ITE 303 — Web Systems and Technologies 2**.
 
-## Features
+## Endpoints
 
-- Read all student records (`GET /students`)
-- Read a single student record by ID (`GET /students/:id`)
-- Create a new student record (`POST /students`)
-- Update an existing student record (`PUT /students/:id`)
-- Delete a student record (`DELETE /students/:id`)
+| Method | Endpoint | Description | Expected Success Status |
+| --- | --- | --- | --- |
+| `GET` | `/students` | Retrieve all student records | `200 OK` |
+| `GET` | `/students/:id` | Retrieve one student by ID | `200 OK` |
+| `POST` | `/students` | Create a new student record | `201 Created` |
+| `PUT` | `/students/:id` | Replace all editable fields of a student | `200 OK` |
+| `DELETE` | `/students/:id` | Delete a student record by ID | `200 OK` |
 
 ## Local Setup
 
@@ -318,354 +267,411 @@ A RESTful backend API built with Node.js, Express, TypeScript, and Supabase Post
    ```bash
    pnpm install
    ```
-2. Copy `.env.example` to `.env` and add your private Supabase PostgreSQL connection string.
-3. Start the development server:
+2. Copy `.env.example` to `.env` and fill in your private Supabase Session pooler `DATABASE_URL`.
+3. Run in development mode:
    ```bash
    pnpm dev
    ```
+4. Build and run for production:
+   ```bash
+   pnpm build
+   pnpm start
+   ```
 ````
 
-Save all open files in VS Code (`Ctrl+S`).
+### Step 8 — Verify that credentials are not tracked by Git (Security Risks & Response)
 
-**Checkpoint:** Your API passes CRUD tests in Postman, `.gitignore` excludes `.env` and `node_modules/`, `.env.example` uses only safe placeholders, and `README.md` is saved in your project root.
+Before opening GitHub Desktop, understand why credential security is one of the most important skills in backend engineering:
 
----
+- **What is the security risk?** Automated bots constantly scan GitHub repositories within seconds of a push looking for leaked `.env` files, `postgresql://` connection strings, and API keys. If your real `DATABASE_URL` is uploaded to GitHub, unauthorized users can read, modify, or wipe your database, or abuse your cloud account.
+- **Why `.gitignore` only protects untracked files:** Adding `.env` to `.gitignore` stops Git from adding `.env` in the future. However, if `.env` was *already committed* before you added `.gitignore`, Git continues tracking it and keeps the password inside your commit history!
 
-## Part 4 — Introduction to GitHub Desktop
+<Callout type="warning">
 
-Now you will use **GitHub Desktop** to turn your Student API folder into a Git repository, create your first commit, and publish it to GitHub.
+**What to do if you accidentally committed `.env` or a real password:**
 
-*(Note: Steps 1–6 work completely offline. Steps 7–9 require an internet connection.)*
-
-### Step 1 — Open GitHub Desktop
-
-Launch **GitHub Desktop** on your computer.
-
-### Step 2 — Add or initialize your existing Student API project as a repository
-
-Because your Student API folder already exists on your computer, you will point GitHub Desktop to that folder:
-
-1. In the top menu bar, click **File → Add local repository...** (or press `Ctrl+O`).
-2. Click **Choose...** and select your **Student Information API** folder (the folder that contains `package.json` and `src/`).
-3. Look at what GitHub Desktop displays:
-   - **If your folder is not a Git repository yet:** GitHub Desktop will show a message saying: *"This directory does not appear to be a Git repository. Would you like to create a repository here instead?"* Click the blue link **create a repository**.
-   - In the **Create a New Repository** dialog that opens:
-     - verify **Name** matches your folder name (or shows your folder path),
-     - leave **Initialize this repository with a README** unchecked if you already created `README.md` in Part 3,
-     - leave **Git Ignore** set to **None** (so it keeps the `.gitignore` you created in Part 3),
-     - click **Create Repository**.
-   - **If your folder was already initialized with Git earlier:** Click **Add Repository** and it will open directly.
-
-*(Notice that if you created a repository here using the dialog, GitHub Desktop may automatically create an `Initial commit` for you, or show your files under the **Changes** tab. Check both the **Changes** tab and the **History** tab on the left panel to see where you are.)*
-
-### Step 3 — Inspect changed files
-
-Look at the left sidebar of GitHub Desktop under the **Changes** tab (or click the **History** tab if GitHub Desktop already created the initial commit during Step 2):
-
-- When you click any file in the list (such as `src/server.ts`, `.gitignore`, or `README.md`), the right panel shows the file contents (**green lines** with `+` show lines being added).
-- You should see your project files such as:
-  - `.env.example`
-  - `.gitignore`
-  - `package.json`
-  - `README.md`
-  - `src/db.ts`
-  - `src/server.ts`
-  - `src/controllers/studentController.ts`
-  - `src/routes/studentRoutes.ts`
-
-### Step 4 — Check that sensitive files are excluded (Security Checkpoint!)
-
-Look carefully at the file list in GitHub Desktop (**Changes** and **History** tabs):
-
-1. Confirm that **`.env` does NOT appear anywhere** in the list.
-2. Confirm that **`node_modules/` does NOT appear anywhere** in the list.
-3. Click `.env.example` and `src/db.ts` to preview their lines on the right side, and verify that your real Supabase password is **not** written inside any tracked file.
-
-**Wait!** If `.env` appears in the list, **uncheck** it immediately, check your `.gitignore` spelling from Part 3, and make sure `.env` disappears before committing.
-
-### Step 5 — Write a meaningful commit message
-
-If your files are listed under the **Changes** tab waiting to be committed:
-
-1. Ensure the checkboxes next to your safe project files are checked.
-2. Look at the bottom-left box of GitHub Desktop:
-   - In the **Summary (required)** field, type a clear, short message describing this checkpoint, for example:
-     ```text
-     Initial commit of Student Information CRUD API
-     ```
-   - In the **Description** box (optional), you can add a short note like:
-     ```text
-     Includes Express routes, PostgreSQL CRUD controller, .gitignore, .env.example, and README.
-     ```
-
-### Step 6 — Create the first commit
-
-1. Click the blue **Commit to main** button at the bottom-left of GitHub Desktop.
-2. Click the **History** tab near the top-left of GitHub Desktop.
-3. You will see your commit recorded in your **local repository** with your name, timestamp, commit message, and the exact files saved in that snapshot.
-
-<Callout type="info">
-
-**Screenshot 2 tip:** Open the **History** tab in GitHub Desktop showing your repository name, your first commit, and the list of safe committed files (`.gitignore`, `.env.example`, `package.json`, `README.md`, `src/...`). Capture this window for **Screenshot 2**.
+1. **STOP immediately.** Do **not** publish or push your repository to GitHub.
+2. **Rotate (change) your database password immediately** in your Supabase dashboard (**Project Settings → Database → Database password**) so the leaked password becomes useless right away.
+3. **Update your local `.env`** with the new password and confirm `.env` is listed in `.gitignore`.
+4. **Inform your instructor** before pushing so they can help you verify that `.env` is untracked and no secret remains in your commit history. Never rely on deleting `.env` in a later commit—anyone viewing an older commit on GitHub can still read the old password!
 
 </Callout>
 
-Notice that your commit is saved **locally on your computer**. It is not on GitHub.com yet!
+If Git is already initialized in your project folder, you can run this quick terminal check to verify what Git sees:
 
-### Step 7 — Publish the repository to GitHub
-
-When you have an internet connection, upload your local repository to GitHub:
-
-1. In GitHub Desktop's top bar (or center panel), click **Publish repository**.
-2. A **Publish Repository** window appears:
-   - **Name:** `student-information-api` (or your existing project folder name).
-   - **Description:** `ITE 303 Student Information CRUD API with Express, TypeScript, and PostgreSQL`
-   - **Keep this code private:** **Leave this box CHECKED (recommended for classroom work)** unless your instructor explicitly tells your class to make it public.
-3. Click **Publish Repository**.
-4. Wait a few seconds while GitHub Desktop uploads your commits to GitHub.com. When it finishes, the top bar button changes to **Fetch origin**.
-
-#### Why repository visibility and access matter
-
-- **Private repository (recommended default):** Only you and people you invite as collaborators can view your code on GitHub. This is safer for school assignments while you are learning, **but your instructor cannot open your repository link to grade your work unless you grant them access** (or unless your instructor directs the class to use a specific classroom setup or public visibility).
-- **Public repository:** Anyone on the internet can view and download your code. Never make a repository public unless you are 100% certain `.env` and all personal or database secrets have never been committed, and your instructor approves public repositories.
-
-### Step 8 — Open the repository in your browser
-
-1. In GitHub Desktop, click **Repository → View on GitHub** from the top menu (or press `Ctrl+Shift+G`), or click the **View on GitHub** button on the main screen.
-2. Your web browser will open your new remote repository page on `https://github.com/<your-username>/<your-repo-name>`.
-
-### Step 9 — Verify the uploaded files
-
-Look at your repository page on GitHub.com and check:
-
-- [ ] Your `src/` folder, `package.json`, `.gitignore`, `.env.example`, and `README.md` are visible.
-- [ ] Your `README.md` text is rendered neatly below the file list.
-- [ ] **`.env` is NOT listed.**
-- [ ] **`node_modules` is NOT listed.**
-
-<Callout type="info">
-
-**Screenshot 3 tip:** Capture your browser showing your GitHub repository page with the uploaded project files (`src`, `.gitignore`, `.env.example`, `package.json`, `README.md`) and your repository URL visible. Save this as **Screenshot 3**.
-
-</Callout>
-
----
-
-### Optional: What do the equivalent Git terminal commands look like?
-
-**You do not need to memorize or run these commands for this lesson.** GitHub Desktop runs Git commands for you in the background. Later in your career, you may see developers run these four commands in a terminal:
-
-```bash
-# 1. Check which files have been modified or are untracked
-git status
-
-# 2. Stage safe changed files so they are ready for the next commit
-git add .
-
-# 3. Save a commit snapshot locally with a message
-git commit -m "Initial commit of Student Information CRUD API"
-
-# 4. Upload local commits to the remote repository on GitHub
-git push
+```powershell
+# Check Git status (if your folder is already a Git repository)
+git status --ignored
 ```
 
-In this chapter, continue using **GitHub Desktop** so you can visually inspect every file before committing.
+**Checkpoint:** `.env` and `node_modules/` appear under **Ignored files** (or do not appear as tracked/staged files), `.env.example` uses placeholders only, and `src/db.ts` reads `process.env.DATABASE_URL` instead of hard-coding any connection string.
 
 ---
 
-## Part 5 — Making Another Commit
+## Part C — Git and GitHub Desktop
 
-In real development, you do not just upload your project once. Every time you improve your code or documentation, you make a new **commit** and **push** it to GitHub. Let's practice that cycle now.
+Now that your project is tested and your secrets are protected, you will use **Git** and **GitHub Desktop** to track your project and publish it to **GitHub**.
 
-### Commit vs. Push — What is the difference?
+### Understanding Git vs. GitHub and core vocabulary
 
-Beginners often confuse **Commit** and **Push**. Keep this distinction clear:
+Review these essential version control terms before creating your repository:
 
-| Action | Where it happens | Needs internet? | What it does |
-| --- | --- | --- | --- |
-| **Commit** | On your computer (**local repository**) | **No** | Saves a checkpoint of your changes in your local Git history. GitHub.com does **not** see it yet. |
-| **Push** | From your computer to **GitHub.com** (**remote repository**) | **Yes** | Uploads your saved local commits to GitHub so the online repository matches your computer. |
-
-You must always **Commit** your changes first before you can **Push** them to GitHub.
-
-### Practice: Add an API endpoints table to `README.md`
-
-Let's make a small, meaningful improvement to your project documentation.
-
-#### 1. Edit and save `README.md`
-
-Open `README.md` in VS Code and add an **API Endpoints** section at the bottom of the file:
-
-```markdown
-## API Endpoints
-
-| Method | Endpoint | Description | Success Status |
-| --- | --- | --- | --- |
-| `GET` | `/students` | Retrieve all student records | `200 OK` |
-| `GET` | `/students/:id` | Retrieve one student by ID | `200 OK` |
-| `POST` | `/students` | Create a new student record | `201 Created` |
-| `PUT` | `/students/:id` | Replace all editable fields of a student | `200 OK` |
-| `DELETE` | `/students/:id` | Delete a student record by ID | `200 OK` |
-```
-
-Save `README.md` (`Ctrl+S`).
-
-#### 2. Open GitHub Desktop and inspect the diff
-
-Switch to **GitHub Desktop** and click the **Changes** tab on the left:
-
-- You will see `README.md` listed as modified (with a yellow dot icon).
-- Click `README.md`. The right side shows the **diff** (the difference between the previous commit and your current file). The new lines you just added are highlighted in **green** with `+` signs.
-
-#### 3. Write a meaningful commit message
-
-In the bottom-left **Summary** box, write a short message that explains *what* this specific change does:
-
-```text
-Document Student API endpoints table in README
-```
-
-*(Avoid vague messages like `update` or `asdf`. A good commit message tells future you what changed without having to open every file.)*
-
-#### 4. Commit locally
-
-Click **Commit to main**.
-
-Now switch to the **History** tab in GitHub Desktop. You will see **at least two commits** listed in your repository history! Notice the small upward arrow (`↑ 1`) next to your branch or on the **Push origin** button — that arrow tells you that your computer has **1 local commit** that has not been uploaded to GitHub yet.
-
-<Callout type="info">
-
-**Screenshot 4 tip:** In GitHub Desktop's **History** tab, make sure **at least two meaningful commits** are visible in the list. Capture this view for **Screenshot 4**.
-
-</Callout>
-
-#### 5. Push to GitHub
-
-Click **Push origin** in the top bar of GitHub Desktop (or press `Ctrl+P`). Wait a moment for the upload to complete.
-
-#### 6. Verify the change on GitHub
-
-Go back to your repository page in your web browser and **refresh the page**:
-
-- Scroll down to the `README.md` preview — your new **API Endpoints** table is now live on GitHub!
-- Click the **Commits** count (for example, **2 commits**) near the top-right of the file table to see both commits recorded on GitHub.
-
-<Callout type="info">
-
-**Screenshot 5 tip:** Capture your GitHub repository page in the browser showing either your updated `README.md` with the new **API Endpoints** table or the GitHub **Commits** page showing your pushed commit history. Save this as **Screenshot 5**.
-
-</Callout>
-
----
-
-## Part 6 — Preparing for Chapter 4
-
-Congratulations! Your Student Information API is now version-controlled with Git and backed up on GitHub.
-
-### How everything connects
-
-Here is how your work in Chapters 2 and 3 leads directly into **Chapter 4**:
-
-```text
-1. Student API Project (VS Code + Express + TypeScript + Supabase Pool)
-       ↓
-2. Git (tracks changes & saves local commits on your computer)
-       ↓
-3. GitHub (stores your remote repository online without .env secrets)
-       ↓
-4. Chapter 4: Render Deployment Platform (connects to GitHub, builds your app, and runs it online)
-```
-
-### Important facts before Chapter 4
-
-1. **Uploading code to GitHub does NOT run your server online:** GitHub stores your **source code files**, not a running Express server. Your API still only runs when you start `pnpm dev` on your computer. In **Chapter 4**, you will connect your GitHub repository to **Render**, a cloud hosting platform that will actually build and run your Express backend on a public URL.
-2. **How will Render know your `DATABASE_URL` if `.env` is not on GitHub?** Because `.env` is excluded by `.gitignore` for security, Render will not get your database password from GitHub. Instead, hosting platforms like Render provide a secure **Environment Variables** settings screen in their dashboard. In Chapter 4, you will configure `DATABASE_URL` privately inside Render's settings — never inside your GitHub code.
-3. **Never share your actual credentials:** Do not paste your `.env` file, your Supabase password, or your `DATABASE_URL` into README files, commit messages, screenshots, or Google Classroom comments.
-
----
-
-## Part 7 — Guided Activity and Google Classroom Submission
-
-Complete the steps in Parts 1–5 using your existing **Student Information API** project, then submit your work in Google Classroom.
-
-### Required repository checklist
-
-Before submitting, check that your GitHub repository contains:
-
-- [ ] Your existing Express + TypeScript Student API source code (`src/server.ts`, `src/db.ts`, `src/routes/studentRoutes.ts`, `src/controllers/studentController.ts`).
-- [ ] Working database-backed CRUD handlers (`GET` all, `GET` by ID, `POST`, `PUT`, `DELETE`).
-- [ ] `package.json` with your project dependencies and scripts.
-- [ ] `.gitignore` excluding `.env` and `node_modules/`.
-- [ ] `.env.example` containing **placeholder values only** (no real database passwords or hosts).
-- [ ] A clear, beginner-friendly `README.md`.
-- [ ] At least **two meaningful commits** in the repository history.
-- [ ] **Zero** `.env` files, real database connection strings, or private credentials in any commit.
-
-### Required screenshots (5 total)
-
-Save five clear, readable screenshots as PNG or JPG files. **Never show `.env` contents, database passwords, or Supabase connection strings in any screenshot:**
-
-1. **`01-crud-verified.png` — Existing Student API running & CRUD verified:** Show your Student API running (`pnpm dev`) and Postman demonstrating a successful database-backed CRUD check (or clearly documented CRUD test evidence from your existing project).
-2. **`02-github-desktop-first-commit.png` — First commit in GitHub Desktop:** Show GitHub Desktop with your Student API repository and your first commit (showing safe tracked files and no `.env`).
-3. **`03-github-repo-files.png` — Published GitHub repository page:** Show your GitHub repository page in the browser displaying the uploaded project files (`src`, `.gitignore`, `.env.example`, `package.json`, `README.md`).
-4. **`04-github-desktop-two-commits.png` — At least two commits in GitHub Desktop:** Show the **History** tab in GitHub Desktop displaying at least two meaningful commits.
-5. **`05-github-pushed-update.png` — Final pushed change on GitHub:** Show your GitHub repository page in the browser displaying your pushed second commit (either the updated `README.md` on the repo page or the GitHub commit history page).
-
-### Reflection questions
-
-Answer these three questions in 1–3 simple sentences each when submitting in Google Classroom:
-
-1. **What is the difference between Git and GitHub?**
-2. **What is the difference between Commit and Push?**
-3. **Why should `.env` not be uploaded to GitHub?**
-
-### How to give your instructor access to a Private repository
-
-If you published your repository as **Private** (recommended), your instructor will see a `404 Not Found` page unless you grant access:
-
-1. Ask your instructor for the official **instructor GitHub username** (or follow the classroom link posted in Google Classroom).
-2. On your GitHub repository page, click **Settings** (top tab bar) → **Collaborators** (left sidebar).
-3. Click **Add people**, enter the GitHub username provided by your instructor in class, and click **Add to this repository**.
-4. *(Only change repository visibility to Public if your instructor explicitly instructs the class to do so and you have verified that no secrets were ever committed.)*
-
-### Submitting in Google Classroom
-
-Open the assigned **Chapter 3.4 Activity** in Google Classroom and submit:
-
-1. **Your GitHub repository URL** (for example, `https://github.com/your-username/student-information-api`).
-2. **All five required screenshots** (`01-crud-verified.png` through `05-github-pushed-update.png`).
-3. **Your answers to the three reflection questions.**
-
-Click **Turn in** and confirm that Google Classroom shows your work as submitted.
-
----
-
-## Troubleshooting
-
-| Problem / What you see | How to fix it |
+| Concept | Clear explanation |
 | --- | --- |
-| `'git' is not recognized` in terminal | Close VS Code and all terminal windows completely, reopen a new terminal after installing Git, and run `git --version` again. |
-| `.env` or `node_modules` shows up in GitHub Desktop **Changes** | Do **not** commit yet! Open `.gitignore` in the root of your Student API project, make sure `.env` and `node_modules/` are written on their own lines, save `.gitignore`, and check GitHub Desktop again. |
-| I already committed `.env` or my database password by mistake | **Stop immediately.** Do not publish or push to GitHub. Inform your instructor, and rotate (change) your database password in Supabase right away. |
-| GitHub Desktop says *"Publish repository"* failed | Check your internet connection, confirm you verified your GitHub email address, and check **File → Options → Accounts** to make sure you are signed into GitHub.com. |
-| I clicked **Commit to main**, but my change is not on GitHub.com | Remember: **Commit** only saves to your computer! Click **Push origin** in the top bar of GitHub Desktop, then refresh your browser. |
-| GitHub Desktop shows thousands of files from my `Desktop` or `Documents` folder | You accidentally added your parent user folder instead of your `student-api` project folder. In GitHub Desktop, right-click the repository name → **Remove...** (keep files on disk), then add **only** your `student-api` project folder. |
-| Postman CRUD check fails before Git setup | Make sure `pnpm dev` is running in your Student API folder, `.env` has your working Supabase Session pooler URL from Lesson 3.1, and your internet connection can reach Supabase. |
+| **Git vs. GitHub** | **Git** is the version-tracking tool installed on your computer (works offline). **GitHub** is the cloud website (`github.com`) that hosts your Git repositories online (requires internet). |
+| **Repository (repo)** | A project folder tracked by Git, including its files and complete history of saved checkpoints. |
+| **Commit** | A saved snapshot (checkpoint) of your tracked files on your computer at a specific moment, labeled with a clear summary message. |
+| **Push** | Uploading your saved local commits from your computer to your remote repository on GitHub. |
+| **Pull** | Downloading new commits from GitHub to update the local repository on your computer. |
+| **Branch** | An independent timeline of commits inside a repository. Your primary working timeline is called the **`main` branch**. |
+
+<Callout type="info">
+
+**Prerequisite check:** Make sure **Git** (`git --version` in PowerShell), a verified **GitHub.com account**, and **GitHub Desktop** (signed into your GitHub account under **File → Options → Accounts** with your Git Name and Email configured) are ready on your computer.
+
+</Callout>
+
+### Step 1 — Initialize or add your existing Student API project in GitHub Desktop
+
+1. Open **GitHub Desktop**.
+2. Click **File → Add local repository...** (or press `Ctrl+O`) and select your **Student API project root folder** (where `package.json` lives).
+3. Check what GitHub Desktop reports:
+   - **If your folder is not a Git repository yet:** GitHub Desktop will display *"This directory does not appear to be a Git repository. Would you like to create a repository here instead?"* Click the **create a repository** link.
+   - In the **Create a New Repository** dialog:
+     - Confirm the **Local Path** points to your Student API folder.
+     - Leave **Initialize this repository with a README** unchecked if you already created `README.md` in Part B.
+     - Leave **Git Ignore** set to **None** so GitHub Desktop preserves the `.gitignore` you prepared in Part B.
+     - Click **Create Repository**.
+   - **If your folder is already a Git repository:** Click **Add Repository**.
+
+### Step 2 — Review changed files carefully
+
+Look at the left panel in GitHub Desktop under **Changes** (and also check **History** if GitHub Desktop automatically created an initial commit when initializing):
+
+1. Click through each file (`package.json`, `pnpm-lock.yaml`, `.gitignore`, `.env.example`, `README.md`, `src/server.ts`, `src/db.ts`, `src/routes/studentRoutes.ts`, `src/controllers/studentController.ts`).
+2. Read the diff preview on the right panel to verify what is being recorded.
+3. **Mandatory security check:**
+   - Confirm **`.env` is NOT listed** anywhere in Changes or History.
+   - Confirm **`node_modules/` is NOT listed** anywhere in Changes or History.
+   - Confirm no file contains your real Supabase password.
+
+### Step 3 — Create descriptive commits
+
+Whenever you have uncommitted changes under the **Changes** tab:
+
+1. In the bottom-left **Summary (required)** field, write a specific, descriptive commit message that explains *what* this snapshot contains, such as:
+   ```text
+   Prepare Student REST API for Render deployment
+   ```
+   *(Avoid vague commit messages like `update`, `fix`, or `test`. A developer reading your commit history should immediately understand what changed.)*
+2. Click **Commit to main**.
+3. Switch to the **History** tab in GitHub Desktop to confirm your commit is saved locally on the `main` branch.
+
+### Step 4 — Publish your repository to GitHub
+
+Remember: **Commit** saves a checkpoint on your computer, while **Publish / Push** uploads your local commits to GitHub.
+
+1. Click **Publish repository** in the top bar of GitHub Desktop (or **Push origin** if you already published earlier).
+2. In the **Publish Repository** dialog:
+   - Confirm the repository **Name** (for example, `student-management-api` or `student-information-api`).
+   - Add a clear **Description** (for example, `ITE 303 Student Management REST API with Express, TypeScript, and PostgreSQL`).
+   - **Visibility:** Follow your instructor's classroom instruction for repository visibility (if keeping **Keep this code private** checked, remember to invite your instructor as a collaborator under **Settings → Collaborators** on GitHub so your submission URL can be reviewed).
+3. Click **Publish Repository** and wait for the upload to finish.
+
+### Step 5 — Verify repository contents on GitHub
+
+1. In GitHub Desktop, click **Repository → View on GitHub** (`Ctrl+Shift+G`).
+2. Inspect your repository page in your web browser and verify:
+   - [ ] Branch indicator shows **`main`**.
+   - [ ] `src/`, `package.json`, `pnpm-lock.yaml` (or `package-lock.json`), `tsconfig.json`, `.gitignore`, `.env.example`, and `README.md` are present.
+   - [ ] **`.env` and `node_modules/` are completely absent.**
+   - [ ] Clicking the **Commits** link shows your descriptive commit history.
+
+**Checkpoint:** Your complete, secret-free Student API code is pushed to the `main` branch on GitHub.
 
 ---
 
-## Grading Rubric (100 Points)
+## Part D — Deploying to Render
 
-Your submission will be graded using the following criteria:
+Now you will connect your GitHub repository to **Render** so Render can build and run your Express server on a public `https://` URL. Because cloud dashboards update their visual layouts over time, practice reading the labels on screen rather than relying on memorized button coordinates.
+
+### Step 1 — Create a Render account and start a new Web Service
+
+1. Open [https://render.com](https://render.com) in your browser and sign in (signing in with your **GitHub account** is the easiest way to connect your repositories).
+2. Open the **Render Dashboard**.
+3. Click the **New +** (or **Add new**) button and select **Web Service**.
+   - *Why a Web Service?* A **Static Site** only serves plain HTML/CSS/JS files to browsers. Because your Express API is a persistent Node.js server that listens for HTTP requests and queries PostgreSQL, it must be deployed as a **Web Service**.
+
+### Step 2 — Connect your GitHub repository and select the branch
+
+1. Choose the option to **Build and deploy from a Git repository**.
+2. Connect your GitHub account if prompted and grant Render access to your **Student API repository**.
+3. Select your **Student API repository** from the list.
+4. Set the configuration basics:
+   - **Name:** Give your service a clear name (for example, `ite303-student-api-yourname`). Render uses this name in your public `.onrender.com` URL.
+   - **Language / Runtime:** Select **`Node`** (Node.js environment).
+   - **Branch:** Select **`main`** (or whichever branch holds your verified commits).
+   - **Region:** Choose a nearby region (such as **Singapore** or the closest region to your Supabase project).
+   - **Root Directory:** Leave blank *unless* your `package.json` is nested inside a subfolder in your repository.
+   - **Instance Type:** Select the **Free** plan for classroom practice.
+
+### Step 3 — Configure Build Command and Start Command
+
+Scroll to the **Build Command** and **Start Command** fields in Render.
+
+<Callout type="important">
+
+**Commands depend on your actual project configuration!** Inspect your own `package.json` from Part B Step 4 so the commands you give Render match the exact package manager and scripts in your repository.
+
+</Callout>
+
+Compare the common configurations below and enter the commands that match **your** Student API project:
+
+| Project Setup | Typical Build Command on Render | Typical Start Command on Render |
+| --- | --- | --- |
+| **TypeScript compiled to `dist/` with `pnpm`** (Option A in Part B) | `pnpm install && pnpm run build` | `pnpm run start` *(which runs `node dist/server.js`)* |
+| **TypeScript run via `tsx` with `pnpm`** (Option B in Part B) | `pnpm install` *(or `pnpm install --prod=false` if `tsx` is in devDependencies)* | `pnpm run start` *(which runs `tsx src/server.ts`)* |
+| **Project using `npm` instead of `pnpm`** | `npm install && npm run build` | `npm run start` |
+
+**Ask yourself before continuing:**
+- Does my `package.json` actually have a `"build"` script if I put `pnpm run build` in the Build Command?
+- Does my `package.json` actually have a `"start"` script? (Never use `pnpm dev` or `tsx watch` as your production Start Command on Render—file watchers waste memory and can cause production containers to fail.)
+
+### Step 4 — Add the `DATABASE_URL` environment variable securely
+
+Because `.env` was excluded by `.gitignore`, Render does not know how to connect to your Supabase database yet. You must provide `DATABASE_URL` inside Render's secure **Environment Variables** settings.
+
+1. Scroll down to the **Environment Variables** section in Render and click **Add Environment Variable**.
+2. Set the variable key and value:
+   - **Key:** `DATABASE_URL` (must match `process.env.DATABASE_URL` in your `src/db.ts` file with exact uppercase spelling).
+   - **Value:** Paste your working **Supabase Session pooler connection string** from your local `.env` file (without surrounding quotation marks `"..."`).
+3. Verify two critical details in your `DATABASE_URL` value:
+   - It uses your **Supabase Session pooler** host (for example, `...pooler.supabase.com:5432/postgres?sslmode=require`), which supports IPv4 connections from Render's free tier.
+   - It contains your real database password (properly URL-encoded if your password has special characters), **not** the `[YOUR-PASSWORD]` placeholder.
+4. *(Do **not** manually set `PORT` unless required—Render sets `PORT` automatically.)*
+
+### Step 5 — Start deployment and read the build and runtime logs
+
+1. Click **Create Web Service** (or **Deploy Web Service**) at the bottom of the page.
+2. Render will open the **Logs** screen for your deployment. Practice reading the logs from top to bottom—they tell the story of your deployment in two phases:
+   - **Build Phase:** Render clones your GitHub commit on `main`, installs Node.js packages (`pnpm install`), and runs your Build Command (`pnpm run build`). Look for `Build successful 🎉`.
+   - **Deploy / Runtime Phase:** Render starts your container using your Start Command (`pnpm run start`). Look for your Express startup log (such as `Student API listening on port ...`) and your database connection message, followed by Render reporting **`Your service is live 🎉`**.
+
+### Step 6 — Find your public HTTPS URL
+
+Once your service badge turns green (**Live**), look near the top-left of your Render Web Service dashboard (right underneath your service name). You will see a public HTTPS link formatted like:
+
+```text
+https://ite303-student-api-yourname.onrender.com
+```
+
+Copy this URL. Notice two things:
+1. It uses **`https://`** (encrypted HTTP), not `http://`.
+2. You do **not** write `:4000` or `:10000` at the end of a Render URL—Render routes standard HTTPS traffic to your internal `process.env.PORT` automatically.
+
+<Callout type="info">
+
+**Note on Render's Free tier spin-down:** Free Web Services on Render automatically go to sleep after about 15 minutes of inactivity. The **first request** you send after a quiet period may take **30–60 seconds** while Render wakes up the server. Subsequent requests will respond quickly.
+
+</Callout>
+
+**Checkpoint:** Your Render Web Service status is **Live**, your logs show no crash loops, and you have copied your public `https://<your-service>.onrender.com` URL.
+
+---
+
+## Part E — Live API Testing with Postman
+
+Deploying a server is not complete until you verify that every endpoint works against the live cloud URL and persists changes in your Supabase database.
+
+### Important testing rules
+
+1. **Test against your deployed Render URL, NOT `localhost`:** Every request in this section must start with `https://<your-service>.onrender.com/students`.
+2. **Use disposable fictional test records only:** Create new fictional test records (for example, `"student_number": "2026-901"`, `"first_name": "Test"`, `"last_name": "Deploy"`) for your update and delete tests.
+3. **Do NOT delete existing baseline or production records:** Only `DELETE` the disposable fictional test record that you created with `POST` during this test run.
+
+### Required live Postman test sequence
+
+Create or update a Postman Collection for your deployed API and execute all seven test cases below in order:
+
+| Test # | Method & Live Endpoint | Request Body / Details | Required Status | Expected Response & Verification |
+| --- | --- | --- | --- | --- |
+| **1** | `GET /students` | None | **`200 OK`** | Returns a JSON array of existing student records from your Supabase `students` table. |
+| **2** | `POST /students` | Raw JSON with 5 valid fictional fields (`student_number`, `first_name`, `last_name`, `course`, `year_level`) | **`201 Created`** | Inserts the new fictional test student into Supabase and returns the created JSON object including its generated `id` (record this `id` as `{testId}`). |
+| **3** | `GET /students/:id` | Use `/students/{testId}` from Test 2 | **`200 OK`** | Returns the single JSON student object matching `{testId}`. |
+| **4** | `PUT /students/:id` | Use `/students/{testId}` + Raw JSON with all 5 editable fields updated (e.g., change `course` or `year_level`) | **`200 OK`** | Replaces the editable fields for `{testId}` and returns the updated JSON object with the **same `id`**. |
+| **5** | `DELETE /students/:id` | Use `/students/{testId}` (your disposable test record only!) | **Expected success status from Activity 3.3** *(e.g., `200 OK` or `204 No Content`)* | Removes only the disposable record `{testId}` and returns your Activity 3.3 deletion confirmation. |
+| **6** | `GET /students/:id` (deleted record) | Use `/students/{testId}` again after deleting it in Test 5 | **`404 Not Found`** | Returns `404` (e.g., `{ "message": "Student not found" }`), proving the row was truly removed from PostgreSQL. |
+| **7** | Invalid input test (`POST` or `PUT` or `GET`) | Example A: `POST /students` with missing `first_name` or `year_level: 0`<br/>Example B: `GET /students/abc` or `PUT /students/abc` | **`400 Bad Request`** | Returns `400` with your validation error message, proving your controller validation rejects bad input before querying PostgreSQL. |
+
+### How to diagnose where an error comes from
+
+When a live test fails, beginners often guess randomly. Instead, use the clues in Postman and Render logs to identify which of the **four layers** produced the error:
+
+| Layer | Symptoms you see | How to confirm & fix |
+| --- | --- | --- |
+| **1. Postman (Client mistake)** | • `Could not send request` / DNS error (typo in URL)<br/>• `404 Cannot POST /student` (missing `s` in `/students`)<br/>• `400` on `POST`/`PUT` even though JSON looks right (`Body` tab is set to `Text` instead of `raw → JSON`, so `Content-Type: application/json` was not sent) | Check the HTTP method dropdown, the exact spelling of `https://<your-service>.onrender.com/students`, and confirm **Body → raw → JSON** is selected. Notice whether the request ever appears in your Render logs—if Render logs show nothing, the request never reached your Express server! |
+| **2. Render (Hosting / Platform layer)** | • `502 Bad Gateway` or `503 Service Unavailable`<br/>• Browser/Postman hangs for 60+ seconds and fails<br/>• Render dashboard badge says **Deploy failed** or **Exited** | Open the **Render Logs** tab. Your container either failed to build, crashed on startup (for example, wrong Start Command or missing `DATABASE_URL`), or is still waking up from Free-tier sleep. |
+| **3. Express (Application / Route / Validation layer)** | • Response arrives quickly as JSON with `400 Bad Request` or `404 Not Found`<br/>• Default Express HTML `Cannot GET /...` | Your Render container is running and Express answered! Check your route path in `studentRoutes.ts`, middleware order (`app.use(express.json())`), and validation rules in `studentController.ts`. |
+| **4. PostgreSQL / Supabase (Database layer)** | • Response is `500 Internal Server Error` (e.g., `{ "message": "Could not fetch students" }`) or `409 Conflict` (`student_number already exists`)<br/>• Render logs show `password authentication failed`, `ENETUNREACH` (IPv6 direct URL used instead of Session pooler), or `relation "students" does not exist` | Express reached the `pool.query(...)` step, and PostgreSQL or `pg` returned an error. Check the **Render Logs** for the server-side error details, verify `DATABASE_URL` in Render's Environment tab uses the **Session pooler** URL with `sslmode=require`, and check your Supabase table. |
+
+**Checkpoint:** All seven required Postman tests return their expected status codes against your live `https://<your-service>.onrender.com` URL.
+
+---
+
+## Part F — AI-Assisted Troubleshooting
+
+In professional software development, engineers read documentation, inspect logs, and sometimes ask AI assistants (such as ChatGPT, Claude, or Gemini) to help explain unfamiliar errors. However, pasting errors blindly without understanding the fix—or leaking database passwords into an AI chat—is dangerous and ineffective.
+
+### The 7-Step Responsible AI Troubleshooting Workflow
+
+Whenever you hit a deployment or testing error that you cannot solve immediately, follow these seven steps in order:
+
+1. **Read the original error message carefully:** Look at the exact wording, file name, line number, or HTTP status code in your terminal, Render logs, or Postman response.
+2. **Identify the failing component:** Use the table in Part E to decide whether the failure is happening in **Git/GitHub**, the **Render Build phase**, the **Render Start/Runtime phase**, **Express routing/validation**, **Supabase PostgreSQL**, or **Postman**.
+3. **Ask an AI assistant a clear, sanitized technical question:** Describe what you are trying to do, your tech stack (Node.js, Express, TypeScript, `pg`, Render), the exact **sanitized** error message, and the relevant code or script snippet.
+4. **Evaluate the suggested explanation:** Does the AI's explanation match how your project is actually structured? (For example, if the AI suggests Prisma or Mongoose commands, reject that part because our project uses the `pg` Pool directly.)
+5. **Make changes carefully:** Apply only the small change you understand, test it locally if it is a code/script change, and create a clear Git commit + push.
+6. **Retest the application:** Verify in Render logs and Postman whether the fix actually resolved the problem and did not break existing routes.
+7. **Explain what actually solved the problem:** Write down the root cause and the fix in your own words for your activity reflection.
+
+<Callout type="warning">
+
+**Strict AI Security Rule: NEVER paste passwords or private connection strings into AI tools!**
+
+Before copying any terminal output, `.env` line, or Render log into an AI prompt, **always replace sensitive values with placeholders**:
+- **UNSAFE (Never do this):** `My DATABASE_URL is postgresql://postgres.abcdefgh:MySecretPass123@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres`
+- **SAFE (Sanitized):** `My DATABASE_URL format is postgresql://USER:REDACTED_PASSWORD@HOST:5432/postgres?sslmode=require`
+
+</Callout>
+
+### Realistic troubleshooting examples
+
+Study these five common deployment problems, what causes them, and how to ask an AI assistant a meaningful, safe question about each one:
+
+#### Scenario 1 — Build failure on Render (`tsc: not found` or TypeScript error)
+
+- **What you see in Render Build Logs:**
+  ```text
+  sh: 1: tsc: not found
+  ==> Build failed 😞
+  ```
+- **Failing component:** Render Build phase (`package.json` dependencies / build script).
+- **Good sanitized AI prompt:**
+  > *"I am deploying a Node.js + Express + TypeScript API to Render using `pnpm`. My Render Build Command is `pnpm install && pnpm run build`, and `"build": "tsc"` is in my `package.json`. Render fails with `sh: 1: tsc: not found`. `typescript` is listed in `devDependencies`. Why can't Render find `tsc`, and how should I configure my dependencies or Render settings?"*
+- **What to verify:** Check whether `typescript` (and `@types/*`) were installed during the build, or whether `NODE_ENV=production` skipped `devDependencies`.
+
+#### Scenario 2 — Incorrect Start Command (`Cannot find module '.../dist/server.js'`)
+
+- **What you see in Render Deploy Logs:**
+  ```text
+  Error: Cannot find module '/opt/render/project/src/dist/server.js'
+  ==> Exited with status 1
+  ```
+- **Failing component:** Render Start phase (`package.json` `"start"` script vs. `tsconfig.json` `"outDir"`).
+- **Good sanitized AI prompt:**
+  > *"My Express + TypeScript app builds on Render without errors, but when Render runs `node dist/server.js`, it exits with `Error: Cannot find module '/opt/render/project/src/dist/server.js'`. Here is my `tsconfig.json`: `[paste tsconfig.json]`. Why wasn't `dist/server.js` created where Node expects it?"*
+- **What to verify:** Check if `tsconfig.json` had `"noEmit": true` (which prevents `tsc` from creating files) or if `"outDir": "./dist"` was missing.
+
+#### Scenario 3 — Missing or misspelled environment variable on Render
+
+- **What you see in Render Deploy Logs:**
+  ```text
+  Error: Missing DATABASE_URL environment variable
+  ==> Exited with status 1
+  ```
+- **Failing component:** Render Environment Variables configuration.
+- **How to verify and fix:** Look at `src/db.ts` where `process.env.DATABASE_URL` is checked. Open Render's **Environment** tab and verify that `DATABASE_URL` is added, spelled in exact uppercase, and saved—then trigger a redeploy if needed.
+
+#### Scenario 4 — Database connection error (`ENETUNREACH` or authentication error)
+
+- **What you see in Render Runtime Logs when calling `GET /students`:**
+  ```text
+  Error: connect ENETUNREACH 2406:da18:...:5432
+  ```
+  *(or Postman receives `500 Internal Server Error`)*
+- **Failing component:** Supabase PostgreSQL connection string (`DATABASE_URL` on Render).
+- **Good sanitized AI prompt:**
+  > *"My Express API on Render uses the `pg` Pool to connect to Supabase PostgreSQL. Requests return 500 and the Render logs show `connect ENETUNREACH` followed by an IPv6 address on port 5432. Why does this happen on Render, and which Supabase connection string type should I use instead? (Credentials redacted.)"*
+- **What to verify:** Render's outbound network uses IPv4, while Supabase's direct connection host is IPv6-only by default. Switching `DATABASE_URL` in Render to the **Supabase Session pooler** connection string (`...pooler.supabase.com:5432/postgres?sslmode=require`) resolves the issue.
+
+#### Scenario 5 — HTTP 400 or 404 error during live Postman testing
+
+- **What you see in Postman:**
+  Sending `POST https://<your-service>.onrender.com/students` returns `400 Bad Request` with `{ "message": "A JSON object is required" }` or `{ "message": "All text fields are required" }`.
+- **Failing component:** Postman request formatting vs. Express controller validation.
+- **How to verify and fix:** Inspect Postman's **Body** tab (confirm **raw** and **JSON** are selected so `Content-Type: application/json` is sent) and compare every field name in your JSON against the five properties expected by `createStudent` (`student_number`, `first_name`, `last_name`, `course`, `year_level`).
+
+---
+
+## Part G — Submission Requirements
+
+You do **not** need to submit step-by-step tutorial screenshots for this activity. Instead, you will submit verifiable engineering artifacts: your live repository URL, your live Render URL, your exported Postman test evidence, a structured HTTP status-code test summary, and your troubleshooting reflection.
+
+### Required deliverables
+
+Prepare and submit the following five items in your assigned **Activity 3.4** submission in Google Classroom:
+
+#### 1. GitHub Repository URL
+
+- Provide the full link to your published GitHub repository (for example, `https://github.com/your-username/student-management-api`).
+- If your repository is **Private**, ensure you have invited your instructor's GitHub account under **Settings → Collaborators** before submitting.
+
+#### 2. Public Render API Base URL
+
+- Provide the full public HTTPS link to your deployed Render service (for example, `https://ite303-student-api-yourname.onrender.com`) so your instructor can send live requests to `/students`.
+
+#### 3. Exported Postman Collection (or equivalent test evidence)
+
+- Save all seven required live requests (from Part E) inside a Postman Collection using your **deployed Render URL**.
+- In Postman, click the three dots (`...`) next to your collection name → **Export** → choose **Collection v2.1** → save the `.json` file (for example, `ite303-activity-3-4-postman-collection.json`) and attach it to your submission.
+- *(Confirm your exported collection contains only your public Render URL and fictional student test data—never any passwords or database connection strings.)*
+
+#### 4. HTTP Status-Code Test Summary
+
+Include a completed summary table in your submission document or response showing the actual results of your seven live tests against Render:
+
+| Test Case | HTTP Method & Full Render Endpoint Tested | Actual Status Code Returned | Brief Summary of JSON Response / Outcome |
+| --- | --- | --- | --- |
+| 1. Get all students | `GET https://.../students` | `200` | *(Describe actual result)* |
+| 2. Create disposable test student | `POST https://.../students` | `201` | *(Record generated fictional `id` and result)* |
+| 3. Get single student by ID | `GET https://.../students/{id}` | `200` | *(Describe actual result)* |
+| 4. Update student by ID | `PUT https://.../students/{id}` | `200` | *(Describe updated fields and result)* |
+| 5. Delete disposable test student | `DELETE https://.../students/{id}` | *(Your Activity 3.3 status, e.g. `200`)* | *(Describe deletion confirmation)* |
+| 6. Get deleted student by ID | `GET https://.../students/{id}` | `404` | *(Confirm 404 Not Found message)* |
+| 7. Invalid input check | *(Specify method & URL tested)* | `400` | *(Confirm 400 validation error message)* |
+
+#### 5. AI Troubleshooting and Learning Reflection
+
+Answer these four prompts clearly in your own words (2–4 sentences each):
+
+1. **Deployment Architecture:** Why was your `localhost` API unreachable from other computers, and how do **GitHub**, **Render**, and **Supabase** work together when a user sends a request to your public Render URL?
+2. **Environment Variable Security:** Why is `.env` excluded from Git via `.gitignore`, how does `.env.example` help developers, and what must you do immediately if a real database password is ever committed by mistake?
+3. **Production Readiness (`PORT` & Scripts):** Why must your Express server use `process.env.PORT` on Render, and what is the difference between your Build Command and your Start Command?
+4. **Troubleshooting & AI Reflection:** Describe at least one real error, warning, or configuration question you encountered while preparing, publishing, deploying, or testing your API (or explain how you verified a specific log check if everything succeeded on the first try). Which component was involved, what question did you ask (or how did you inspect the logs/docs), and what specific fix or verification confirmed the solution?
+
+### Completion criteria checklist
+
+Before clicking **Turn in**, verify every item below:
+
+- [ ] My GitHub repository is pushed to `main` with clear, descriptive commit messages.
+- [ ] My GitHub repository contains `src/`, `package.json`, `.gitignore`, `.env.example` (placeholders only), and `README.md`.
+- [ ] **Zero** `.env` files, database passwords, or real `DATABASE_URL` strings exist in any commit or file on GitHub.
+- [ ] My Render Web Service is **Live** and connected to my Supabase PostgreSQL database.
+- [ ] All seven Postman tests (`GET` all `200`, `POST` `201`, `GET` one `200`, `PUT` `200`, `DELETE` success, `GET` deleted `404`, invalid input `400`) pass against my public `https://...onrender.com` URL using disposable fictional records.
+- [ ] Existing baseline student records in Supabase remain intact.
+- [ ] I have attached my GitHub URL, Render URL, exported Postman collection, HTTP status-code test summary, and reflection answers.
+
+---
+
+## Part H — Grading Rubric (100 Points)
+
+Your Activity 3.4 submission will be graded on a **100-point scale**:
 
 | Criterion | Points | What we look for |
 | --- | ---: | --- |
-| **Existing CRUD project prepared and checked** | 20 | Continues the existing Chapter 3 Student Information API (`GET`, `POST`, `PUT`, `DELETE` verified with Postman), includes `package.json` and a clear `README.md`. |
-| **Git and GitHub setup** | 15 | Git and GitHub Desktop properly configured with author details and connected to a valid GitHub account. |
-| **Repository published correctly** | 20 | Complete project structure (`src/`, `package.json`, `.gitignore`, `.env.example`, `README.md`) uploaded to GitHub and accessible to the instructor. |
-| **Two meaningful commits** | 15 | Commit history contains at least two clear, descriptive commits showing initial setup and a follow-up improvement pushed to GitHub. |
-| **Security and `.gitignore`** | 15 | `.gitignore` properly excludes `.env` and `node_modules/`; `.env.example` uses safe placeholders only; zero credentials or private data exposed in commits or screenshots. |
-| **Evidence and reflection** | 15 | All five required screenshots are clear and complete, and all three reflection questions are answered accurately in your own words. |
+| **Git and GitHub repository setup** | 20 | Existing Activity 3.3 project is properly tracked with Git and published to GitHub with descriptive commits, a complete `README.md`, safe `.env.example` placeholders, and `.gitignore` excluding `.env`, `node_modules/`, and build artifacts. Zero credentials exposed in commit history. |
+| **Render deployment configuration** | 20 | Render Web Service is connected to the correct GitHub repository and branch, configured for Node.js with valid build and production start commands (`process.env.PORT` supported), and uses a secure `DATABASE_URL` environment variable. |
+| **Working deployed REST API** | 25 | Public Render HTTPS URL is live, responds to requests over the internet, connects reliably to Supabase PostgreSQL, and preserves database data across requests without exposing raw database errors. |
+| **Live CRUD testing** | 20 | Exported Postman collection (or equivalent test evidence) and HTTP status-code test summary accurately verify `GET /students` (`200`), `POST /students` (`201`), `GET /students/:id` (`200`), `PUT /students/:id` (`200`), `DELETE /students/:id` (expected success status), `GET` deleted record (`404`), and invalid input (`400`) using disposable fictional records. |
+| **Troubleshooting reflection and technical understanding** | 15 | Clear, accurate explanations of the deployment architecture, `.env` security and credential rotation, `PORT`/build/start configuration, and responsible log/AI troubleshooting in the student's own words. |
 | **Total** | **100** | |
-
-**Next chapter:** In **Chapter 4**, you will connect your published GitHub repository to **Render**, configure your production environment variables securely, and deploy your Student Information API to the cloud!

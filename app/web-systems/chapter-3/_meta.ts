@@ -4,7 +4,7 @@ const meta = {
   'creating-student-records-with-postgresql': '3.2 Creating Student Records with POST',
   'crud-update-delete-concepts': { display: 'hidden' },
   'updating-student-records-with-put-and-postgresql': '3.3 Updating and Deleting Student Records (PUT & DELETE)',
-  'git-github-and-preparing-for-deployment': '3.4 Introduction to Git, GitHub, and Preparing for Deployment'
+  'git-github-and-preparing-for-deployment': '3.4 Deploying Your Student REST API Using GitHub and Render'
 };
 
 export default meta;
